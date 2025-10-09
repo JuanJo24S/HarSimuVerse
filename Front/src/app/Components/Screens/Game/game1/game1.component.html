@@ -1,40 +1,42 @@
 <body>
-  <section class="section2">
-  <h2 id="t-restante" class="estadisticas">TIEMPO: {{ tiempoRestante }} SEGUNDOS</h2>
-  <h2 id="puntuacion" class="estadisticas">PUNTUACION: {{ puntuacion }}</h2>
-</section>
+  <div class="header">
+    <div class="header-left">
+      <div class="sound-icon" (click)="toggleAudio()">🔊</div>
+      <div class="timer">⏳ {{ tiempoRestante }}s</div>
+    </div>
 
-<div id="tablero">
-  <div
-    *ngFor="let tarjeta of tarjetas"
-    class="area-tarjeta"
-    (click)="seleccionarTarjeta(tarjeta.indice)"
-  >
-    <div
-      class="tarjeta"
-      [id]="'tarjeta' + tarjeta.indice"
-      [style.transform]="(tarjeta.volteada || tarjeta.encontrada) ? 'rotateY(180deg)' : 'rotateY(0deg)'"
-    >
-      <div
-        class="cara trasera"
-        [id]="'trasera' + tarjeta.indice"
-        [attr.data-id]="tarjeta.id"
-        [style.background]="tarjeta.encontrada ? 'plum' : 'lightcyan'"
-        [innerHTML]="tarjeta.img"
-      >
-      </div>
+    <div class="header-center">
+      <div class="nickname"><h3>{{ nickname | titlecase}}</h3></div>
+    </div>
 
-      <div class="cara superior">
-        <i class="far fa-question-circle"></i>
+    <div class="header-right">
+      <div class="score">⭐ {{ score + localScore }}</div>
+      <div class="lives">
+        <span *ngFor="let _ of livesArray">❤️</span>
       </div>
     </div>
   </div>
-</div>
 
-<br>
 
-<div class="nuevo-juego" (click)="generarTablero()">
-  REVOLVER CARTAS
-</div>
+  <main>
+    <div id="tablero" class="no-select">
+      <div *ngFor="let tarjeta of tarjetas" class="card" (click)="seleccionarTarjeta(tarjeta.indice)"
+        [class.flipped]="tarjeta.volteada || tarjeta.encontrada">
+        <div class="card-face front">
+          <i class="far fa-question-circle"></i>
+        </div>
 
+        <div class="card-face back">
+          <div class="back-content" [innerHTML]="tarjeta.img"></div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <button class="btn" (click)="generarTablero()">
+      🔄 Revolver Cartas
+    </button>
+  </footer>
 </body>

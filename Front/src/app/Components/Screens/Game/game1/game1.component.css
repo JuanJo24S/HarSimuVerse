@@ -1,191 +1,220 @@
 /* Importar fuentes */
-@import url("https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@100..900&family=Sixtyfour+Convergence&family=Tiny5&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;700&family=Sixtyfour+Convergence&display=swap");
 
-/* Variables CSS */
-:root {
-    --w: calc(70vw / 6);
-    --h: calc(70vh / 4);
-}
-
-/* Reset y configuración base */
+/* Reset */
 * {
-    transition: all 0.2s;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
+.no-select {
+  user-select: none;
+  -webkit-user-select: none; /* Safari */
+  -moz-user-select: none;    /* Firefox */
+  -ms-user-select: none;     /* IE10+ */
+}
+
+
+/* Body base */
 body {
-    padding: 0;
-    margin: 0;
-    -webkit-perspective: 1000px;
-    perspective: 1000px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%' viewBox='0 0 800 800'%3E%3Crect fill='%23000000' width='800' height='800'/%3E%3Cg%20%3E%3Ccircle fill='%23000000' cx='400' cy='400' r='600'/%3E%3Ccircle fill='%23230046' cx='400' cy='400' r='500'/%3E%3Ccircle fill='%232f0052' cx='400' cy='400' r='400'/%3E%3Ccircle fill='%233b075e' cx='400' cy='400' r='300'/%3E%3Ccircle fill='%348156a' cx='400' cy='400' r='200'/%3E%3Ccircle fill='%3552277' cx='400' cy='400' r='100'/%3E%3C/g%3E%3C/svg%3E");
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    font-family: 'Roboto Slab', serif;
-    color: white;
+  font-family: "Roboto Slab", serif;
+  color: #fff;
+  background-image: url('/assets/img/backgrounds/juego2.jpg');
+  background-repeat: no-repeat;
+  background-size: cover;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 15px;
 }
 
-/* Contenedor principal */
-div {
-    display: inline-block;
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 30px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  border-radius: 15px;
+  margin: 20px;
+  color: #000;
+  font-weight: bold;
 }
 
-/* Sección de estadísticas */
-.section2 {
-    font-family: "Sixtyfour Convergence", cursive;
-    margin-bottom: 20px;
+.header-left,
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
 
-.estadisticas {
-    margin: 0 20px;
-    font-size: 1.5em;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
-    display: inline-block;
+/* 👤 Nickname centrado */
+.header-center {
+  text-align: center;
+  flex: 1;
 }
 
-/* Tablero del juego */
+.nickname {
+  font-size: 22px;
+  font-weight: 700;
+  color: #2c3e50;
+  letter-spacing: 1px;
+}
+
+/* ❤️ Vidas */
+.lives {
+  display: flex;
+  gap: 6px;
+  font-size: 22px;
+  color: #e74c3c;
+}
+
+/* 🔊 Sonido */
+.sound-icon {
+  font-size: 24px;
+  cursor: pointer;
+  transition: transform 0.2s ease-in-out;
+}
+
+.sound-icon:hover {
+  transform: scale(1.2);
+}
+
+
+.timer, .score {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 10px 20px;
+  border-radius: 25px;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+}
+
+/* ==== TABLERO ==== */
 #tablero {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 10px;
-    margin: 20px 0;
-    max-width: 90vw;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 20px 5%;
+  width: 100%;
+  max-width: 45vw;
+  margin: 30px auto;
+  perspective: 1200px;
 }
 
-/* Tarjetas del juego */
-.area-tarjeta,
-.tarjeta,
-.cara {
-    cursor: pointer;
-    width: var(--w);
-    min-width: 100px;
-    height: var(--h);
-    min-height: 120px;
+.card {
+  position: relative;
+  width: 100%;
+  min-width: 5vw;
+  height: 100%;
+
+  aspect-ratio: 3/4;
+  transform-style: preserve-3d;
+  transition: transform 0.6s ease;
+  cursor: pointer;
 }
 
-.area-tarjeta {
-    perspective: 1000px;
+.card:hover {
+  transform: scale(1.05);
 }
 
-.tarjeta {
-    position: relative;
-    transform-style: preserve-3d;
-    animation: iniciar 0s;
-    transition: transform 0.6s ease-in-out;
+.card.flipped {
+  transform: rotateY(180deg);
 }
 
-.cara {
-    position: absolute;
-    backface-visibility: hidden;
-    box-shadow: inset 0 0 0 5px white;
-    font-size: 500%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 10px;
+.card-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  border-radius: 15px;
+  backface-visibility: hidden;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.35);
+  overflow: hidden;
 }
 
-.trasera {
-    background-color: lightcyan;
-    transform: rotateY(180deg);
-    padding: 10px;
+.front {
+  background: linear-gradient(135deg, #4683ec, #76df45);
+  color: #fff;
+  font-size: 2.4rem;
+  border: 2px solid rgba(255,255,255,0.2);
 }
 
-.superior {
-    background: linear-gradient(rgb(8, 45, 119), rgb(111, 5, 116));
-    color: white;
+.back {
+  transform: rotateY(180deg);
+  background: linear-gradient(145deg, #f0fdfa, #d1f7f2);
+  color: #111;
+  font-size: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 2px solid rgba(0,0,0,0.1);
 }
 
-/* Imágenes dentro de las tarjetas */
-.trasera img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
+.back-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
 }
 
-/* Botón de nuevo juego */
-.nuevo-juego {
-    font-family: "Tiny5", cursive;
-    cursor: pointer;
-    background: linear-gradient(rgb(132, 48, 216), rgb(181, 28, 145));
-    color: white;
-    padding: 15px 30px;
-    border: white 3px solid;
-    border-radius: 25px;
-    font-size: 120%;
-    font-weight: bold;
-    transition: all 0.3s;
-    margin: 20px;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+.back-content img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transition: transform 0.3s ease;
 }
 
-.nuevo-juego:hover {
-    background: linear-gradient(rgb(181, 28, 145), rgb(132, 48, 216));
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+.back-content img:hover {
+  transform: scale(1.08);
 }
 
-/* Animación inicial */
-@keyframes iniciar {
-    20%, 90% {
-        transform: rotateY(180deg);
-    }
-    0%, 100% {
-        transform: rotateY(0deg);
-    }
+.btn {
+  font-family: "Sixtyfour Convergence", cursive;
+  cursor: pointer;
+  background: linear-gradient(135deg, #b97c13, #8920ba);
+  background-size: 200% 200%;
+  color: white;
+  padding: 12px 24px;
+  border-style: solid;
+  border-width: 2px;
+  border-color: #808080;
+  border-radius: 25px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  transition: background-position 0.8s ease, transform 0.3s, box-shadow 0.3s;
 }
 
-/* Responsive Design */
-@media (max-width: 1200px) {
-    :root {
-        --w: calc(80vw / 6);
-        --h: calc(60vh / 4);
-    }
+.btn:hover {
+  background-position: right center;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
 }
 
-@media (max-width: 768px) {
-    :root {
-        --w: calc(90vw / 4);
-        --h: calc(50vh / 6);
-    }
+@media (max-width: 600px) {
+  .header {
+    flex-direction: column;
+    gap: 8px;
+    font-size: 1rem;
+  }
 
-    #tablero {
-        grid-template-columns: repeat(4, 1fr);
-        gap: 8px;
-    }
+  .timer,
+  .score {
+    padding: 8px 14px;
+    font-size: 0.9rem;
+  }
 
-    .estadisticas {
-        display: block;
-        margin: 10px 0;
-        font-size: 1.2em;
-    }
+  #tablero {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    max-width: 95vw;
+  }
 
-    .cara {
-        font-size: 300%;
-    }
-}
-
-@media (max-width: 480px) {
-    :root {
-        --w: calc(95vw / 3);
-        --h: calc(40vh / 8);
-    }
-
-    #tablero {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 5px;
-    }
-
-    .cara {
-        font-size: 200%;
-    }
-
-    .nuevo-juego {
-        padding: 10px 20px;
-        font-size: 100%;
-    }
+  .btn {
+    width: 100%;
+    margin-top: 10px;
+  }
 }

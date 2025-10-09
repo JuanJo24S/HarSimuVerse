@@ -1,10 +1,11 @@
 <div class="form-container">
   <div class="form-wrapper">
-    <h2 class="form-title">Bienvenido</h2>
+    <h1 class="game-title">⚔️ HarSimuVerse ⚔️</h1>
+    <h2 class="form-title">¡Crea tu héroe y comienza la aventura!</h2>
 
     <form #form="ngForm" (ngSubmit)="onSubmit(form)" class="user-form">
       <div class="input-group">
-        <label for="nickname" class="input-label">Apodo o Nombre</label>
+        <label for="nickname" class="input-label">Nombre del héroe</label>
         <input
           type="text"
           id="nickname"
@@ -18,8 +19,7 @@
           [class.error]="nicknameCtrl.invalid && nicknameCtrl.touched"
         />
 
-        <div class="error-messages"
-             *ngIf="nicknameCtrl.invalid && nicknameCtrl.touched">
+        <div class="error-messages" *ngIf="nicknameCtrl.invalid && nicknameCtrl.touched">
           <small *ngIf="nicknameCtrl.errors?.['required']" class="error-text">
             El apodo o nombre es requerido
           </small>
@@ -29,12 +29,8 @@
         </div>
       </div>
 
-      <button
-        type="submit"
-        class="submit-button"
-        [routerLink]="['/select-level']"
-        [disabled]="form.invalid">
-        Continuar
+      <button type="submit" class="submit-button" [disabled]="form.invalid">
+        🧭 Continuar
       </button>
     </form>
   </div>

@@ -1,9 +1,14 @@
 :host {
-  display: block;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #1a2a6c, #a66a63, #fdbb2d);
-  padding: 20px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-image: url("/assets/img/backgrounds/juego6.jpg");
+  background-attachment: fixed;
+  background-size: cover;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
 * {
@@ -22,36 +27,61 @@
   margin: 0 auto;
 }
 
-header {
-  background: #2c3e50;
-  color: white;
-  padding: 20px;
-  text-align: center;
-  position: relative;
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 30px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  border-radius: 15px;
+  margin: 20px;
+  color: #000;
+  font-weight: bold;
 }
 
-h1 {
-  font-size: 28px;
-  margin-bottom: 5px;
-}
-
-.level-display {
-  font-size: 18px;
-  opacity: 0.9;
-  margin-bottom: 10px;
-}
-
-.score-container {
-  position: absolute;
-  right: 20px;
-  top: 20px;
-  background: #a66a63;
-  padding: 10px 15px;
-  border-radius: 50px;
+.header-left,
+.header-right {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-weight: bold;
+  gap: 15px;
+}
+
+.header-center {
+  text-align: center;
+  flex: 1;
+}
+
+.nickname {
+  font-size: 22px;
+  font-weight: 700;
+  color: #2c3e50;
+  letter-spacing: 1px;
+}
+
+.lives {
+  display: flex;
+  gap: 6px;
+  font-size: 22px;
+  color: #e74c3c;
+}
+
+.sound-icon {
+  font-size: 24px;
+  cursor: pointer;
+  transition: transform 0.2s ease-in-out;
+}
+
+.sound-icon:hover {
+  transform: scale(1.2);
+}
+
+
+.timer, .score {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 10px 20px;
+  border-radius: 25px;
+  border: 2px solid rgba(0, 0, 0, 0.3);
 }
 
 .level-buttons {
@@ -122,11 +152,12 @@ h1 {
 }
 
 .component-image {
-  width: 100%;
-  max-width: 300px;
-  height: auto;
+  width: auto;
+  max-width: 200px;
+  height: 300px;
   border-radius: 10px;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  object-fit: contain;
 }
 
 .question-container {
@@ -212,7 +243,7 @@ h1 {
 .explanation {
   padding: 20px;
   background: #ffeaa7;
-  margin: 20px;
+  margin: 0 20px;
   border-radius: 10px;
   display: none;
   opacity: 0;
@@ -287,7 +318,7 @@ button:disabled {
 }
 
 .hint-btn {
-  background: #f39c12;
+  background: red;
   color: white;
 }
 
@@ -296,13 +327,21 @@ button:disabled {
 }
 
 @keyframes bounce {
-  from { transform: translateY(0); }
-  to { transform: translateY(-15px); }
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-15px);
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @media (max-width: 768px) {
@@ -319,15 +358,9 @@ button:disabled {
     flex-wrap: wrap;
   }
 
-  .score-container {
-    position: relative;
-    right: auto;
-    top: auto;
-    margin-top: 10px;
-    align-self: center;
-  }
-
-  header {
-    padding-bottom: 10px;
+  header.header {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
   }
 }

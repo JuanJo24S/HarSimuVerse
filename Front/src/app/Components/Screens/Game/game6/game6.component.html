@@ -1,22 +1,30 @@
 <div class="container">
-  <header>
-    <h1>¿Qué Componente Es?</h1>
-    <div class="level-display">{{ currentLevelData.title }}</div>
-    <div class="score-container">
-      <i class="fas fa-star"></i>
-      <span>{{ score }}</span> Puntos
+  <div class="header">
+    <div class="header-left">
+      <div class="sound-icon" (click)="toggleAudio()">🔊</div>
+      <div class="timer">⏳ {{ tiempo }}s</div>
     </div>
-  </header>
 
-  <div class="level-buttons">
+    <div class="header-center">
+      <div class="nickname"><h3>{{ nickname | titlecase}}</h3></div>
+    </div>
+
+    <div class="header-right">
+      <div class="score">⭐ {{ score + localScore }}</div>
+      <div class="lives">
+        <span *ngFor="let _ of livesArray">❤️</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- <div class="level-buttons">
     <button
       *ngFor="let level of levels; let i = index"
       class="level-btn"
-      [class.active]="i === currentLevel"
-      (click)="loadLevel(i)">
+      [class.active]="i === currentLevel">
       Nivel {{ i + 1 }}
     </button>
-  </div>
+  </div> -->
 
   <div class="progress-container">
     <div class="progress-bar" [style.width.%]="progressPercentage"></div>
@@ -63,7 +71,6 @@
     <div class="trophy">🏆</div>
     <h2>¡Nivel Completado!</h2>
     <p>Has completado este nivel con <span>{{ score }}</span> puntos.</p>
-    <p>{{ levelCompleteMessage }}</p>
     <button class="next-btn" (click)="nextLevel()">
       <i class="fas fa-arrow-right"></i>
       {{ currentLevel < levels.length - 1 ? 'Siguiente Nivel' : 'Reiniciar' }}

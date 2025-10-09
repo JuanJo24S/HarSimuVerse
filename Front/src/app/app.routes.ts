@@ -6,6 +6,7 @@ import { ComputerAssemblyComponent } from './Components/Screens/Game/computer-as
 import { Game2Component } from './Components/Screens/Game/game2/game2.component';
 import { Game3Component } from './Components/Screens/Game/game3/game3.component';
 import { Game6Component } from './Components/Screens/Game/game6/game6.component';
+import { ScoreComponent } from './Components/Screens/score/score.component';
 
 export const routes: Routes = [
   {
@@ -13,7 +14,7 @@ export const routes: Routes = [
     redirectTo: 'home',
     pathMatch: 'full'
   },
-    {
+  {
     path: 'home',
     component: RegisterComponent
   },
@@ -36,6 +37,10 @@ export const routes: Routes = [
       {path:'level-2', component: Game3Component},
       {path:'level-3', component: Game6Component},
     ]
+  },
+  {
+    path:'score',
+    component: ScoreComponent
   }
 
 ];

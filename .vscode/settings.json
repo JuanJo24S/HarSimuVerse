@@ -1,0 +1,10 @@
+{
+    "github.copilot.advanced": {
+        
+    },
+    "workbench.colorTheme": "Default Dark Modern",
+    "editor.aiStats.enabled": true,
+    "editor.allowVariableFontsInAccessibilityMode": false,
+    "editor.cursorBlinking": "blink",
+    "a-file-icon-vscode.folderColor": "#727272"
+}

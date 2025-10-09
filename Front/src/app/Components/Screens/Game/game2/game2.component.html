@@ -1,46 +1,60 @@
 <div class="container">
-  <div class="game-header">
-    <h1>ARRASTRA LAS PARTES DE LA COMPUTADORA A SU LUGAR CORRESPONDIENTE</h1>
-    <button id="iniciar" (click)="iniciarJuego()">INICIAR JUEGO</button>
-  </div>
+  <div class="header">
+    <div class="header-left">
+      <div class="sound-icon" (click)="toggleAudio()">🔊</div>
+      <div class="timer">⏳ {{ tiempoRestante }}s</div>
+    </div>
 
-  <div class="draggable-items" id="draggable-container">
-    <img
-      *ngFor="let item of draggableItems"
-      [src]="item.src"
-      [alt]="item.alt"
-      class="draggable"
-      [class.dragging]="draggedItem === item.name"
-      draggable="true"
-      [attr.data-name]="item.name"
-      [style.display]="item.visible ? 'block' : 'none'"
-      (dragstart)="onDragStart($event, item.name)"
-      (dragend)="draggedItem = ''"
-    >
-  </div>
+    <div class="header-center">
+      <div class="nickname text-black"><h3>{{ nickname | titlecase}}</h3></div>
+    </div>
 
-  <div class="droppable-areas">
-    <div
-      *ngFor="let area of droppableAreas"
-      class="droppable"
-      [class.hovered]="draggedItem !== '' && draggedItem === area.name"
-      [attr.data-name]="area.name"
-      (dragover)="onDragOver($event)"
-      (dragenter)="onDragEnter($event)"
-      (dragleave)="onDragLeave($event)"
-      (drop)="onDrop($event, area.name)"
-    >
-      <span [style.display]="area.filled ? 'none' : 'block'">{{ area.label }}</span>
-      <img
-        [src]="area.imageSrc"
-        [alt]="area.alt"
-        [style.display]="area.filled ? 'block' : 'none'"
-      >
+    <div class="header-right">
+      <div class="score">⭐ {{ score + localScore }}</div>
+      <div class="lives">
+        <span *ngFor="let _ of livesArray">❤️</span>
+      </div>
     </div>
   </div>
-</div>
 
-<div class="stats-container">
-  <h2 id="t-restante" class="estadisticas">Tiempo: {{ tiempoRestante }} segundos</h2>
-  <h2 id="puntuacion" class="estadisticas">Puntuación: {{ puntuacion }}</h2>
+
+  <div class="game-header">
+    <h1>ARRASTRA LAS PARTES DE LA COMPUTADORA A SU LUGAR CORRESPONDIENTE</h1>
+  </div>
+
+  <div class="items-container">
+    <div class="draggable-items" id="draggable-container">
+      <img
+        *ngFor="let item of draggableItems"
+        [src]="item.src"
+        [alt]="item.alt"
+        class="draggable"
+        [class.dragging]="draggedItem === item.name"
+        draggable="true"
+        [attr.data-name]="item.name"
+        [style.display]="item.visible ? 'block' : 'none'"
+        (dragstart)="onDragStart($event, item.name)"
+        (dragend)="draggedItem = ''"
+      >
+    </div>
+
+    <div class="droppable-areas">
+      <div
+        *ngFor="let area of droppableAreas"
+        class="droppable"
+        [attr.data-name]="area.name"
+        (dragover)="onDragOver($event)"
+        (dragenter)="onDragEnter($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event, area.name)"
+      >
+        <span [style.display]="area.filled ? 'none' : 'block'">{{ area.label }}</span>
+        <img
+          [src]="area.imageSrc"
+          [alt]="area.alt"
+          [style.display]="area.filled ? 'block' : 'none'"
+        >
+      </div>
+    </div>
+  </div>
 </div>

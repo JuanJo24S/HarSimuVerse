@@ -3,8 +3,10 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(to bottom, #3498db, #2c3e50);
-  padding: 20px;
+  background-image: url('/assets/img/backgrounds/juego3.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   font-family: 'Arial Rounded MT Bold', 'Arial', sans-serif;
   color: #333;
 }
@@ -15,8 +17,65 @@
   padding: 20px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
   width: 90%;
-  max-width: 900px;
+  max-width: 70vw;
   text-align: center;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 30px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  border-radius: 15px;
+  margin: 20px;
+  color: #000;
+  font-weight: bold;
+}
+
+.header-left,
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.header-center {
+  text-align: center;
+  flex: 1;
+}
+
+.nickname {
+  font-size: 22px;
+  font-weight: 700;
+  color: #2c3e50;
+  letter-spacing: 1px;
+}
+
+.lives {
+  display: flex;
+  gap: 6px;
+  font-size: 22px;
+  color: #e74c3c;
+}
+
+.sound-icon {
+  font-size: 24px;
+  cursor: pointer;
+  transition: transform 0.2s ease-in-out;
+}
+
+.sound-icon:hover {
+  transform: scale(1.2);
+}
+
+
+.timer, .score {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 10px 20px;
+  border-radius: 25px;
+  border: 2px solid rgba(0, 0, 0, 0.3);
 }
 
 h1 {
@@ -25,11 +84,12 @@ h1 {
   margin-bottom: 5px;
 }
 
-.timer {
-  font-size: 24px;
+.instructions {
+  background-color: #F7DC6F;
+  padding: 10px;
+  border-radius: 8px;
+  margin: 15px 0;
   font-weight: bold;
-  color: #e74c3c;
-  margin-bottom: 15px;
 }
 
 .game-area {
@@ -83,7 +143,7 @@ h1 {
 
 .keyboard-zone {
   width: 150px;
-  height: 40px;
+  height: 60px;
   bottom: 30px;
   left: 170px;
 }
@@ -114,6 +174,25 @@ h1 {
   border: 2px solid #E74C3C;
 }
 
+.drop-zone * {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+.drop-zone img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+}
+
+
 .parts-container {
   display: flex;
   flex-wrap: wrap;
@@ -140,11 +219,9 @@ h1 {
 .part:hover {
   transform: scale(1.05);
 }
-
 .part.dragging {
   opacity: 0.5;
 }
-
 .part span {
   font-size: 24px;
 }
@@ -159,7 +236,6 @@ h1 {
   flex-direction: column;
   align-items: center;
 }
-
 .juancho-head {
   width: 50px;
   height: 50px;
@@ -168,7 +244,6 @@ h1 {
   position: relative;
   z-index: 2;
 }
-
 .juancho-body {
   width: 60px;
   height: 70px;
@@ -183,7 +258,6 @@ h1 {
   text-align: center;
   padding-top: 10px;
 }
-
 .hat {
   width: 60px;
   height: 20px;
@@ -194,7 +268,6 @@ h1 {
   left: -5px;
   z-index: 1;
 }
-
 .backpack {
   width: 30px;
   height: 40px;
@@ -206,14 +279,6 @@ h1 {
   z-index: 1;
 }
 
-.instructions {
-  background-color: #F7DC6F;
-  padding: 10px;
-  border-radius: 8px;
-  margin: 15px 0;
-  font-weight: bold;
-}
-
 .completed {
   background-color: #2ECC71;
   color: white;
@@ -222,4 +287,25 @@ h1 {
   margin-top: 20px;
   font-weight: bold;
   font-size: 24px;
+}
+
+@media (max-width: 600px) {
+  .header {
+    flex-direction: column;
+    gap: 10px;
+    font-size: 1rem;
+  }
+  .timer,
+  .score {
+    padding: 8px 14px;
+    font-size: 0.95rem;
+  }
+  .desk {
+    width: 100%;
+    height: auto;
+  }
+  .desk-surface {
+    width: 95%;
+    height: 200px;
+  }
 }

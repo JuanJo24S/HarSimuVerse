@@ -1,8 +1,8 @@
 .game-container {
   width: 100%;
   height: 100vh;
-  background: linear-gradient(45deg, #9b59b6, #e74c3c);
-  position: relative;
+  background-image: url('/assets/img/backgrounds/juego1.jpg');
+  background-size: cover;
   overflow: hidden;
   font-family: 'Arial', sans-serif;
   display: flex;
@@ -13,31 +13,59 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 40px;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
+  padding: 15px 30px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
   border-radius: 15px;
   margin: 20px;
-  color: white;
+  color: #000;
   font-weight: bold;
-  font-size: 18px;
 }
 
+.header-left,
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.header-center {
+  text-align: center;
+  flex: 1;
+}
+
+.nickname {
+  font-size: 22px;
+  font-weight: 700;
+  color: #2c3e50;
+  letter-spacing: 1px;
+}
+
+/* ❤️ Vidas */
+.lives {
+  display: flex;
+  gap: 6px;
+  font-size: 22px;
+  color: #e74c3c;
+}
+
+/* 🔊 Sonido */
 .sound-icon {
   font-size: 24px;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: transform 0.2s ease-in-out;
 }
 
 .sound-icon:hover {
-  transform: scale(1.1);
+  transform: scale(1.2);
 }
+
 
 .timer, .score {
   background: rgba(255, 255, 255, 0.2);
   padding: 10px 20px;
   border-radius: 25px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(0, 0, 0, 0.3);
 }
 
 .icons-area {
@@ -50,10 +78,13 @@
 
 .icons-grid {
   display: grid;
+  width: 60%;
+  height: 60%;
+  place-items: center;
   grid-template-columns: repeat(6, 1fr);
   grid-template-rows: repeat(2, 1fr);
   gap: 20px;
-  background: rgba(255, 235, 59, 0.9);
+  background: rgba(189, 195, 199, 0.9);
   padding: 30px;
   border-radius: 20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
@@ -70,6 +101,9 @@
   cursor: pointer;
   border-radius: 15px;
   border: 3px dashed transparent;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
 .icon-container:hover {
@@ -85,8 +119,8 @@
 }
 
 .icon-placeholder {
-  width: 60px;
-  height: 60px;
+  width: 100px;
+  height: 100px;
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -96,26 +130,9 @@
   font-size: 12px;
   text-align: center;
   transition: all 0.3s ease;
+  position: relative;
 }
 
-/* Estilos para diferentes tipos de iconos - puedes personalizar estos colores */
-.android-icon { background: #a4c639; }
-.pantalla-icon { background: #3498db; }
-.teclado-icon { background: #9b59b6; }
-.instagram-icon { background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
-.facebook-icon { background: #3b5998; }
-.torre-icon { background: #34495e; }
-.youtube-icon { background: #ff0000; }
-.tiktok-icon { background: #000; }
-.papelera-icon { background: #95a5a6; }
-.chrome-icon { background: linear-gradient(45deg, #4285f4, #ea4335, #fbbc05, #34a853); }
-.cargador-icon { background: #2c3e50; }
-.carpeta-icon { background: #f39c12; }
-
-.icon-text {
-  font-size: 14px;
-  font-weight: bold;
-}
 
 .text-area {
   background: rgba(189, 195, 199, 0.9);
@@ -254,14 +271,12 @@
   transform: translateY(0px);
 }
 
-/* Efectos de arrastrar */
 .text-label.dragging {
   opacity: 0.7;
   transform: rotate(5deg);
 }
 
-/* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 868px) {
   .icons-grid {
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(4, 1fr);

@@ -1,1 +1,11 @@
-<router-outlet />
+<div *ngIf="showSplash" class="splash" (click)="enterApp()">
+  <div class="splash-content">
+    <h1 class="splash-title">🎮 {{ title }} 🎮</h1>
+    <p class="splash-subtitle">👆 ¡Toca para jugar! 👆</p>
+    <div class="splash-animation">
+      <div class="pulse"></div>
+    </div>
+  </div>
+</div>
+
+<router-outlet *ngIf="!showSplash"></router-outlet>

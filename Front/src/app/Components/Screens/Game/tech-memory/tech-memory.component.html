@@ -1,44 +1,49 @@
 <div class="game-container">
-  <!-- Header con tiempo y puntuación -->
+
   <div class="header">
-    <div class="sound-icon">🔊</div>
-    <div class="timer">Tiempo: {{ tiempo }} segundos</div>
-    <div class="score">Puntuacion: {{ puntuacion }}</div>
+    <div class="header-left">
+      <div class="sound-icon" (click)="toggleAudio()">🔊</div>
+      <div class="timer">⏳ {{ tiempo }}s</div>
+    </div>
+
+    <div class="header-center">
+      <div class="nickname"><h3>{{ nickname | titlecase}}</h3></div>
+    </div>
+
+    <div class="header-right">
+      <div class="score">⭐ {{ score + localScore }}</div>
+      <div class="lives">
+        <span *ngFor="let _ of livesArray">❤️</span>
+      </div>
+    </div>
   </div>
 
-  <!-- Área de iconos -->
+
+
+
   <div class="icons-area">
     <div class="icons-grid">
-      <div
-        *ngFor="let item of gameItems"
-        class="icon-container"
-        [class.matched]="item.matched"
-        (dragover)="onDragOver($event)"
-        (drop)="onDrop($event, item)"
-      >
+      @for (item of gameItems; track item.id) {
+      <div class="icon-container" [class.matched]="item.matched" (dragover)="onDragOver($event)"
+        (drop)="onDrop($event, item)">
         <div class="icon-placeholder" [class]="item.iconClass">
-          <!-- Aquí irán tus imágenes personalizadas -->
-          <span class="icon-text">{{ item.name.charAt(0) }}</span>
+          <img [src]="item.src" alt="" width="100" height="100px" style="object-fit: cover;">
         </div>
       </div>
+      }
     </div>
   </div>
 
-  <!-- Área de texto -->
   <div class="text-area">
     <div class="text-labels">
-      <div
-        *ngFor="let name of shuffledNames"
-        class="text-label"
-        draggable="true"
-        (dragstart)="onDragStart($event, name)"
-      >
+      @for (name of shuffledNames; track name) {
+      <div class="text-label" draggable="true" (dragstart)="onDragStart($event, name)">
         {{ name }}
       </div>
+      }
     </div>
   </div>
 
-  <!-- Decoraciones -->
   <div class="decorations">
     <div class="decoration-circle circle-1"></div>
     <div class="decoration-circle circle-2"></div>
@@ -48,7 +53,6 @@
     <div class="decoration-circle circle-6"></div>
   </div>
 
-  <!-- Botones de control -->
   <div class="control-buttons">
     <button class="btn-primary" (click)="resetGame()">Reiniciar Juego</button>
   </div>

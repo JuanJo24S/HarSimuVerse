@@ -1,9 +1,9 @@
 :host{
-  display: block; /* asegura que ocupe espacio */
-  min-height: 100vh; /* que abarque toda la pantalla */
+  display: block;
+  min-height: 100vh;
   background-image: url('/assets/img/backgrounds/seleccionador.jpg');
-  background-size: cover;   /* ajusta la imagen a la pantalla */
-  background-position: center; /* centrada */
+  background-size: cover;
+  background-position: center;
   background-repeat: no-repeat;
 }
 
@@ -20,7 +20,7 @@
 .kids {
   background-image: url('/assets/img/seleccionador/edad4-7.png');
   background-repeat: no-repeat;
-  background-size: contain; /* o cover / 100% 100% */
+  background-size: contain;
   background-position: center;
 }
 
@@ -32,6 +32,6 @@
 }
 
 h3 {
-  margin: 0; /* quita el espacio de arriba */
-  padding-top: 1rem; /* opcional si quieres espacio pero controlado */
+  margin: 0;
+  padding-top: 1rem;
 }

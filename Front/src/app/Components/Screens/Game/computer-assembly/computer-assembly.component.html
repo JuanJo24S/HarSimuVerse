@@ -1,6 +1,21 @@
 <div class="container">
-  <h1>Nivel 2: Arma el Computador como Juancho</h1>
-  <div class="timer">Tiempo: {{ formatTime(timeLeft) }}</div>
+  <div class="header">
+    <div class="header-left">
+      <div class="sound-icon" (click)="toggleAudio()">🔊</div>
+      <div class="timer">⏳ {{ timeLeft }}s</div>
+    </div>
+
+    <div class="header-center">
+      <div class="nickname"><h3>{{ nickname | titlecase}}</h3></div>
+    </div>
+
+    <div class="header-right">
+      <div class="score">⭐ {{ score + localScore }}</div>
+      <div class="lives">
+        <span *ngFor="let _ of livesArray">❤️</span>
+      </div>
+    </div>
+  </div>
 
   <div class="instructions">
     ¡Juancho desarmó su computador! Ayúdalo a armarlo nuevamente arrastrando las partes a su lugar correcto.
@@ -9,33 +24,25 @@
   <div class="game-area">
     <div class="desk">
       <div class="desk-surface">
-        <div class="drop-zone monitor-zone"
-             (dragover)="onDragOver($event)"
-             (dragleave)="onDragLeave($event)"
-             (drop)="onDrop($event, 'monitor')"
-             [innerHTML]="dropZones['monitor'].content">
-          Monitor
+        <div class="drop-zone monitor-zone" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)"
+          (drop)="onDrop($event, 'monitor')">
+          <img *ngIf="dropZones['monitor'].img" [src]="dropZones['monitor'].img" alt="Monitor" />
+          <span *ngIf="!dropZones['monitor'].img">Monitor</span>
         </div>
-        <div class="drop-zone keyboard-zone"
-             (dragover)="onDragOver($event)"
-             (dragleave)="onDragLeave($event)"
-             (drop)="onDrop($event, 'keyboard')"
-             [innerHTML]="dropZones['keyboard'].content">
-          Teclado
+        <div class="drop-zone keyboard-zone" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)"
+          (drop)="onDrop($event, 'keyboard')">
+          <img *ngIf="dropZones['keyboard'].img" [src]="dropZones['keyboard'].img" alt="Teclado" />
+          <span *ngIf="!dropZones['keyboard'].img">Teclado</span>
         </div>
-        <div class="drop-zone mouse-zone"
-             (dragover)="onDragOver($event)"
-             (dragleave)="onDragLeave($event)"
-             (drop)="onDrop($event, 'mouse')"
-             [innerHTML]="dropZones['mouse'].content">
-          Ratón
+        <div class="drop-zone mouse-zone" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)"
+          (drop)="onDrop($event, 'mouse')">
+          <img *ngIf="dropZones['mouse'].img" [src]="dropZones['mouse'].img" alt="Ratón" />
+          <span *ngIf="!dropZones['mouse'].img">Ratón</span>
         </div>
-        <div class="drop-zone tower-zone"
-             (dragover)="onDragOver($event)"
-             (dragleave)="onDragLeave($event)"
-             (drop)="onDrop($event, 'tower')"
-             [innerHTML]="dropZones['tower'].content">
-          Torre
+        <div class="drop-zone tower-zone" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)"
+          (drop)="onDrop($event, 'tower')">
+          <img *ngIf="dropZones['tower'].img" [src]="dropZones['tower'].img" alt="Torre" />
+          <span *ngIf="!dropZones['tower'].img">Torre</span>
         </div>
 
         <div class="juancho">
@@ -48,14 +55,10 @@
     </div>
 
     <div class="parts-container">
-      <div class="part"
-           *ngFor="let part of parts"
-           [attr.data-part]="part.type"
-           [style.display]="part.visible ? 'flex' : 'none'"
-           draggable="true"
-           (dragstart)="onDragStart($event, part.type)"
-           (dragend)="onDragEnd($event)">
-        <span [innerHTML]="part.emoji"></span>
+      <div class="part" *ngFor="let part of parts" [attr.data-part]="part.type"
+        [style.display]="part.visible ? 'flex' : 'none'" draggable="true" (dragstart)="onDragStart($event, part.type)"
+        (dragend)="onDragEnd($event)">
+        <img [src]="part.emoji" [alt]="part.type" style="width:48px;height:48px;">
       </div>
     </div>
   </div>

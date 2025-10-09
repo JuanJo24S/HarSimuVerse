@@ -1,6 +1,9 @@
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit } from '@angular/core';
+import { GameStatusService } from '../../../../Services/game-status.service';
+import { Router } from '@angular/router';
+import Swal from 'sweetalert2';
 
 interface DraggableItem {
   name: string;
@@ -23,23 +26,43 @@ interface DroppableArea {
   templateUrl: './game2.component.html',
   styleUrl: './game2.component.css'
 })
-export class Game2Component implements OnInit, OnDestroy {
- // Variables del juego
-  tiempoRestante: number = 90;
+export class Game2Component implements OnInit, AfterViewInit, OnDestroy {
+  // 🎮 Estado del juego
+  tiempoRestante: number = 120;
   temporizador: any;
-  puntuacion: number = 0;
+  localScore: number = 0;
   juegoActivo: boolean = false;
   draggedItem: string = '';
 
+  get lives() {
+    return this.gameStatus.lives();
+  }
+
+  get nickname() {
+    return this.gameStatus.nickname();
+  }
+
+  get score() {
+    return this.gameStatus.score();
+  }
+
+  get livesArray() {
+    return Array(this.lives).fill(0);
+  }
+
+  // 🎵 Audio
+  private audio = new Audio('/assets/Audios/Nivel 2-1.mp3');
+  private observer!: IntersectionObserver;
+
   draggableItems: DraggableItem[] = [
-    { name: 'fuente', src: '/assets/img/fuente_poder.png', alt: 'Fuente', visible: true },
-    { name: 'ram', src: '/assets/img/ram.png', alt: 'RAM', visible: true },
-    { name: 'procesador', src: '/assets/img/procesador.png', alt: 'GPU', visible: true },
-    { name: 'cpu', src: '/assets/img/CPU.png', alt: 'CPU', visible: true },
-    { name: 'tarjetar', src: '/assets/img/tarjeta-red.png', alt: 'tarjetar', visible: true },
-    { name: 'disipador', src: '/assets/img/disipador.png', alt: 'disipador', visible: true },
-    { name: 'disco', src: '/assets/img/disco-duro.png', alt: 'disco', visible: true },
-    { name: 'lector', src: '/assets/img/lector_cd.png', alt: 'Lector', visible: true }
+    { name: 'fuente', src: '/assets/img/Juego 4/fuente_poder-Juego4.png', alt: 'Fuente', visible: true },
+    { name: 'ram', src: '/assets/img/Juego 4/ram-Juego4.png', alt: 'RAM', visible: true },
+    { name: 'procesador', src: '/assets/img/Juego 4/procesador-Juego4.png', alt: 'GPU', visible: true },
+    { name: 'cpu', src: '/assets/img/Juego 4/CPU-Juego4.png', alt: 'CPU', visible: true },
+    { name: 'tarjetar', src: '/assets/img/Juego 4/tarjeta-red-Juego4.png', alt: 'tarjetar', visible: true },
+    { name: 'disipador', src: '/assets/img/Juego 4/disipador-Juego4.png', alt: 'disipador', visible: true },
+    { name: 'disco', src: '/assets/img/Juego 4/discoDuro-Juego4.png', alt: 'disco', visible: true },
+    { name: 'lector', src: '/assets/img/Juego 4/lector_cd-Juego4.png', alt: 'Lector', visible: true }
   ];
 
   droppableAreas: DroppableArea[] = [
@@ -53,79 +76,114 @@ export class Game2Component implements OnInit, OnDestroy {
     { name: 'procesador', label: 'CPU', alt: 'PROCESADOR', filled: false, imageSrc: '/placeholder.svg?height=100&width=100' }
   ];
 
+  constructor(private el: ElementRef, public gameStatus: GameStatusService, private router: Router) {}
+
   ngOnInit() {
-    // Inicialización del componente
+    this.iniciarJuego();
+    this.audio.load();
+  }
+
+  ngAfterViewInit(): void {
+    this.observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            this.audio.play().catch(err => console.log('No se pudo reproducir:', err));
+          } else {
+            this.audio.pause();
+          }
+        });
+      },
+      { threshold: 0.5 }
+    );
+    this.observer.observe(this.el.nativeElement);
   }
 
   ngOnDestroy() {
-    if (this.temporizador) {
-      clearInterval(this.temporizador);
+    if (this.temporizador) clearInterval(this.temporizador);
+    if (this.observer) this.observer.disconnect();
+    this.audio.pause();
+  }
+
+  toggleAudio() {
+    if (this.audio.paused) {
+      this.audio.play().catch(err => console.log("Error audio:", err));
+    } else {
+      this.audio.pause();
     }
   }
 
   iniciarJuego() {
-    this.iniciarTemporizador();
+    this.localScore = 0;
     this.resetearJuego();
+    this.iniciarTemporizador();
+    this.juegoActivo = true;
   }
 
-  resetearJuego() {
-    this.puntuacion = 0;
+  private resetearRonda() {
+    this.tiempoRestante = 120;
     this.draggableItems.forEach(item => item.visible = true);
     this.droppableAreas.forEach(area => {
       area.filled = false;
       area.imageSrc = '/placeholder.svg?height=100&width=100';
     });
+    this.iniciarTemporizador();
+  }
+
+  resetearJuego() {
+    this.resetearRonda();
+    this.localScore = 0;
+    this.gameStatus.setLives(3);
   }
 
   iniciarTemporizador() {
-    this.tiempoRestante = 90;
-    this.juegoActivo = true;
+    if (this.temporizador) clearInterval(this.temporizador);
+    this.tiempoRestante = 120;
 
     this.temporizador = setInterval(() => {
-      if (this.tiempoRestante > 0) {
-        this.tiempoRestante--;
-      } else {
-        this.finalizarJuego();
-        this.juegoActivo = false;
+      this.tiempoRestante--;
+      if (this.tiempoRestante <= 0) {
+        clearInterval(this.temporizador);
+        this.gameStatus.loseLife();
+
+        if (this.lives > 0) {
+          Swal.fire({
+            icon: 'warning',
+            title: '⏳ ¡Tiempo agotado!',
+            text: 'Pierdes una vida 😢',
+            confirmButtonText: 'Continuar'
+          }).then(() => this.resetearRonda());
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: '❌ Sin vidas',
+            text: 'Reiniciando juego...',
+            confirmButtonText: 'Reintentar'
+          }).then(() => this.iniciarJuego());
+        }
       }
     }, 1000);
   }
 
   finalizarJuego() {
     clearInterval(this.temporizador);
-    alert("¡Se acabó el tiempo!");
+    this.juegoActivo = false;
 
-    // Obtener el ID del usuario del localStorage
-    const userId = localStorage.getItem('user_id');
-
-    if (userId) {
-      // Enviar la puntuación a la API
-      fetch('http://localhost:8000/api/guardar-puntos2', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ puntos2: this.puntuacion, user_id: userId })
-      })
-      .then(response => response.json())
-      .then(data => {
-        console.log(data.message);
-        // Aquí puedes redirigir o mostrar resultados
-        // window.location.href = 'marcador2.html'; // Para Angular sería un router.navigate
-      })
-      .catch(error => {
-        console.error('Error al guardar la puntuación:', error);
-      });
-    }
+    Swal.fire({
+      icon: 'success',
+      title: '🎉 ¡Juego completado!',
+      text: `Has ganado ${this.localScore} puntos`,
+      confirmButtonText: 'Continuar'
+    }).then(() => {
+      this.gameStatus.addScore(this.localScore);
+      this.router.navigate(['/junior/level-2']);
+    });
   }
 
-  // Eventos de drag and drop
   onDragStart(event: DragEvent, itemName: string) {
     if (!this.juegoActivo) return;
     this.draggedItem = itemName;
-    if (event.dataTransfer) {
-      event.dataTransfer.setData('text/plain', itemName);
-    }
+    if (event.dataTransfer) event.dataTransfer.setData('text/plain', itemName);
   }
 
   onDragOver(event: DragEvent) {
@@ -134,46 +192,48 @@ export class Game2Component implements OnInit, OnDestroy {
 
   onDragEnter(event: DragEvent) {
     event.preventDefault();
-    if (event.currentTarget && (event.currentTarget as HTMLElement).classList) {
-      (event.currentTarget as HTMLElement).classList.add('hovered');
-    }
+    (event.currentTarget as HTMLElement)?.classList.add('hovered');
   }
 
   onDragLeave(event: DragEvent) {
-    if (event.currentTarget && (event.currentTarget as HTMLElement).classList) {
-      (event.currentTarget as HTMLElement).classList.remove('hovered');
-    }
+    (event.currentTarget as HTMLElement)?.classList.remove('hovered');
   }
 
   onDrop(event: DragEvent, targetName: string) {
     if (!this.juegoActivo) return;
-
     event.preventDefault();
 
-    // Remover clase hovered
-    const target = event.currentTarget as HTMLElement | null;
-    if (target?.classList) {
-      target.classList.remove('hovered');
-    }
+    const target = event.currentTarget as HTMLElement;
+    target?.classList.remove('hovered');
 
-    const draggedItemName = this.draggedItem;
-
-    if (draggedItemName === targetName) {
-      // Encontrar el área de destino y el item arrastrado
-      const droppableArea = this.droppableAreas.find(area => area.name === targetName);
-      const draggableItem = this.draggableItems.find(item => item.name === draggedItemName);
+    if (this.draggedItem === targetName) {
+      const droppableArea = this.droppableAreas.find(a => a.name === targetName);
+      const draggableItem = this.draggableItems.find(i => i.name === this.draggedItem);
 
       if (droppableArea && draggableItem) {
-        // Marcar como completado
         droppableArea.filled = true;
         droppableArea.imageSrc = draggableItem.src;
         draggableItem.visible = false;
 
-        // Aumentar puntuación
-        this.puntuacion += 15;
-
-        // Verificar si se completó el juego
+        this.localScore += 15;
         this.checkCompletion();
+      }
+    } else {
+      this.gameStatus.loseLife();
+      if (this.lives <= 0) {
+        Swal.fire({
+          icon: 'error',
+          title: '💀 Sin vidas',
+          text: 'Reiniciando juego...',
+          confirmButtonText: 'Reintentar'
+        }).then(() => this.iniciarJuego());
+      } else {
+        Swal.fire({
+          icon: 'warning',
+          title: '⚠️ Pieza incorrecta',
+          text: 'Pierdes una vida 😣',
+          confirmButtonText: 'Continuar'
+        }).then(() => this.resetearRonda());
       }
     }
 
@@ -182,11 +242,7 @@ export class Game2Component implements OnInit, OnDestroy {
 
   checkCompletion() {
     const allPlaced = this.draggableItems.every(item => !item.visible);
-
     if (allPlaced) {
-      alert('¡Felicidades! Has colocado todas las piezas correctamente.');
-      clearInterval(this.temporizador);
-      this.juegoActivo = false;
       this.finalizarJuego();
     }
   }
