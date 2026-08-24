@@ -1,10 +1,9 @@
-// Entorno de PRODUCCION.
-// Los valores los sobreescribe scripts/set-env.mjs durante el build cuando
-// API_URL esta definida (Vercel, build de Docker). Los defaults de aqui solo
-// aplican si se compila sin esa variable.
+// ARCHIVO GENERADO por scripts/set-env.mjs durante el build.
+// No editar a mano: los cambios se sobreescriben si API_URL esta definida.
+// Para desarrollo se usa environment.development.ts (ver fileReplacements en angular.json).
 export const environment = {
   production: true,
-  apiUrl: 'http://localhost:8000/api',
-  wsUrl: 'ws://localhost:8081',
+  apiUrl: 'https://harsimuverse.onrender.com/api',
+  wsUrl: 'wss://harsimuverse.onrender.com/ws',
   reverbKey: 'harsimuverse-status',
 };
