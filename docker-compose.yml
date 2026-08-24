@@ -1,0 +1,146 @@
+###############################################################################
+# HarSimuVerse — entorno de desarrollo completo
+#
+#   docker compose up          -> levanta Postgres + API Laravel + Angular
+#   docker compose up --build  -> reconstruye las imagenes
+#   docker compose down        -> apaga todo (conserva los datos)
+#   docker compose down -v     -> apaga y BORRA la base de datos
+#
+# URLs una vez arriba:
+#   Frontend  http://localhost:4300
+#   API       http://localhost:8000/api/score
+#   Health    http://localhost:8000/up
+#
+# Los puertos y credenciales se pueden sobreescribir en un archivo .env
+# en esta misma carpeta (ver .env.example).
+#
+# Por que 4300 y 5433 y no los clasicos 4200 y 5432: son los puertos que mas
+# choque provocan porque casi cualquier otro proyecto Angular o Postgres que
+# tengas levantado ya los ocupa, y entonces `docker compose up` falla con
+# "port is already allocated". Si los tienes libres y los prefieres, ponlos
+# en el .env: FRONTEND_PORT=4200 y DB_PORT=5432.
+###############################################################################
+
+name: harsimuverse
+
+services:
+  # ---------------------------------------------------------------------------
+  # Base de datos. Postgres para tener paridad con Render, donde el disco es
+  # efimero y SQLite perderia los puntajes en cada deploy.
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: harsimuverse-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-harsimuverse}
+      POSTGRES_USER: ${DB_USERNAME:-harsimuverse}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+      # Acelera el arranque inicial del cluster en desarrollo.
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    ports:
+      # Expuesto para poder conectar un cliente (DBeaver, TablePlus...) al host.
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      # El backend espera este healthcheck antes de migrar.
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-harsimuverse} -d ${DB_DATABASE:-harsimuverse}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - harsimuverse
+
+  # ---------------------------------------------------------------------------
+  # API Laravel. Usa el target `dev` del Dockerfile: artisan serve + bind-mount,
+  # asi que cualquier cambio en PHP se refleja sin reconstruir la imagen.
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./Backend
+      target: dev
+    container_name: harsimuverse-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_NAME: HarSimuVerse
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:${BACKEND_PORT:-8000}
+      APP_PORT: ${BACKEND_PORT:-8000}
+      # APP_KEY se omite a proposito: en Laravel las variables del contenedor
+      # ganan sobre .env, y definirla vacia rompe el cifrado. El entrypoint la
+      # genera y la persiste en Backend/.env la primera vez.
+
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: debug
+
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE:-harsimuverse}
+      DB_USERNAME: ${DB_USERNAME:-harsimuverse}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+
+      # En desarrollo evitamos depender de la base para sesiones y cache.
+      SESSION_DRIVER: file
+      CACHE_STORE: file
+      QUEUE_CONNECTION: sync
+
+      # Origenes permitidos por CORS. Siguen al puerto real del front.
+      FRONTEND_URL: http://localhost:${FRONTEND_PORT:-4300}
+      CORS_ALLOWED_ORIGINS: http://localhost:${FRONTEND_PORT:-4300},http://127.0.0.1:${FRONTEND_PORT:-4300}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      # Codigo en vivo desde el host.
+      - ./Backend:/var/www/html
+      # vendor/ y las carpetas de cache viven en volumenes para que el mount
+      # del host no las tape y para no ensuciar el repo con dependencias PHP.
+      - backend_vendor:/var/www/html/vendor
+      - backend_storage:/var/www/html/storage/framework
+    networks:
+      - harsimuverse
+
+  # ---------------------------------------------------------------------------
+  # Frontend Angular. Target `dev`: ng serve con polling para que el hot reload
+  # funcione a traves del bind-mount.
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./Front
+      target: dev
+    container_name: harsimuverse-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      FRONTEND_PORT: ${FRONTEND_PORT:-4300}
+      # El navegador corre en el host, por eso la API se referencia por
+      # localhost y no por el nombre del servicio `backend`.
+      API_URL: http://localhost:${BACKEND_PORT:-8000}/api
+      NG_CLI_ANALYTICS: "false"
+    ports:
+      - "${FRONTEND_PORT:-4300}:4200"
+    volumes:
+      - ./Front:/app
+      - frontend_node_modules:/app/node_modules
+      # El cache del CLI en un volumen acelera los rebuilds.
+      - frontend_angular_cache:/app/.angular
+    networks:
+      - harsimuverse
+
+volumes:
+  db_data:
+  backend_vendor:
+  backend_storage:
+  frontend_node_modules:
+  frontend_angular_cache:
+
+networks:
+  harsimuverse:
+    driver: bridge

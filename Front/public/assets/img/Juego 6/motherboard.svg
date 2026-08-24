@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Placa base">
+  <rect width="200" height="200" fill="#f1f5f9"/>
+  <rect x="16" y="16" width="168" height="168" rx="8" fill="#14532d"/>
+  <g stroke="#4ade80" stroke-width="2" fill="none" opacity="0.7">
+    <path d="M30 60 h40 v30 h50"/><path d="M30 100 h25 v50 h60"/>
+    <path d="M120 30 v25 h45"/><path d="M150 90 v60"/>
+  </g>
+  <rect x="60" y="46" width="46" height="46" rx="4" fill="#94a3b8"/>
+  <rect x="68" y="54" width="30" height="30" rx="2" fill="#475569"/>
+  <g fill="#1e293b">
+    <rect x="120" y="106" width="54" height="9" rx="2"/>
+    <rect x="120" y="122" width="54" height="9" rx="2"/>
+    <rect x="120" y="138" width="54" height="9" rx="2"/>
+  </g>
+  <rect x="28" y="120" width="60" height="40" rx="4" fill="#1d4ed8"/>
+  <g fill="#facc15">
+    <circle cx="40" cy="40" r="5"/><circle cx="170" cy="40" r="5"/>
+    <circle cx="40" cy="170" r="5"/><circle cx="170" cy="170" r="5"/>
+  </g>
+</svg>

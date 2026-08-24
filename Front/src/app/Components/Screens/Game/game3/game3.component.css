@@ -1,257 +1,42 @@
-/* ===== RESET Y FUENTE =====
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: 'Press Start 2P', cursive;
-} */
-
-:host {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-image: url('/assets/img/backgrounds/juego5.jpg');
-  background-attachment: fixed;
-  background-size: cover;
-  min-height: 100vh;
-  color: #fff;
-}
-
-.game3-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-}
-
-.header {
-  width: 100%;
-  max-width: 1000px;
-  margin: 0 auto 30px auto;
-  background-color: rgba(189, 195, 199, 0.7);
-  border-bottom: 3px solid #6f10b7;
-  padding: 20px 30px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: #fff;
-  font-size: 20px;
-  box-shadow: 0 4px 15px rgba(111, 16, 183, 0.5);
-  text-shadow: 0 0 8px #6f10b7, 0 0 15px #6f10b7;
-  border-radius: 0 0 12px 12px;
-}
-
-.sound-icon {
-  font-size: 28px;
-  cursor: pointer;
-  transition: transform 0.2s ease, color 0.3s;
-}
-
-.sound-icon:hover {
-  transform: scale(1.2);
-  color: #23de26;
-  text-shadow: 0 0 15px #23de26, 0 0 25px #23de26;
-}
-
-.timer, .score {
-  font-size: 18px;
-  color: black;
-  font-weight: bold;
-}
-
-.timer {
-  text-shadow: 0 0 5px #23de26, 0 0 10px #23de26;
-}
-
-.score {
-  text-shadow: 0 0 5px #00cfff, 0 0 10px #00cfff;
-}
-
-.lives {
-  display: flex;
-  gap: 6px;
-  font-size: 22px;
-  color: #ff3b3b;
-  text-shadow: 0 0 5px #ff3b3b, 0 0 10px #ff3b3b;
-}
-
-.container {
-  background-color: rgba(189, 195, 199, 0.9);
-  border-radius: 10px;
-  padding: 30px;
-  box-shadow: 0 4px 15px rgba(0, 255, 0, 0.3);
-  width: 100%;
-  max-width: 1000px;
-  border: 2px solid #6f10b7;
-}
-
-.titulo {
-  text-align: center;
-  color: black;
-  margin-bottom: 20px;
-  font-size: 28px;
-  text-shadow: 0 0 10px #6f10b7, 0 0 20px #6f10b7;
-}
-
-.pregunta {
-  font-size: 20px;
-  margin: 20px 0;
-  color: black;
-}
-
-.imagen {
-  height: auto;
-  border-radius: 10px;
-  display: block;
-  border: 2px solid #6f10b7;
-  box-shadow: 0 0 10px #6f10b7;
-}
-
-.opciones {
-  display: flex;
-  justify-content: space-around;
-  flex-direction: column;
-  gap: 15px;
-}
-
+/*
+  Solo los estados de las opciones. El resto son utilidades de Tailwind en la
+  plantilla. (Antes: 271 lineas.)
+*/
 .opcion {
-  padding: 18px;
-  border: 2px solid #6f10b7;
-  border-radius: 8px;
+  border-color: #e2e8f0;
+  background-color: #fff;
+  color: var(--color-ink);
   cursor: pointer;
-  transition: all 0.3s ease;
-  background-color: #333;
-  font-size: 18px;
-  color: #fff;
-  text-align: center;
-  box-shadow: 0 0 10px rgba(111, 16, 183, 0.5);
 }
 
-.opcion:hover {
-  background-color: #444;
-  box-shadow: 0 0 20px rgba(111, 16, 183, 0.7);
+.opcion:hover:not(:disabled) {
+  border-color: var(--color-brand-ring);
+  background-color: var(--color-brand-soft);
+}
+
+.opcion:disabled {
+  cursor: default;
 }
 
 .opcion.seleccionada {
-  background-color: #6f10b7;
-  color: #141414;
+  border-color: var(--color-brand);
+  background-color: var(--color-brand-soft);
 }
 
-button {
-  padding: 12px 24px;
-  border: 2px solid #780fc7;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 18px;
-  text-transform: uppercase;
-  font-weight: bold;
-  letter-spacing: 2px;
-  background-color: #333;
-  color: #fff;
-  transition: all 0.3s;
+.opcion.acertada {
+  border-color: var(--color-win);
+  background-color: rgb(22 163 74 / 0.14);
+  color: #14532d;
 }
 
-button:hover:not(:disabled) {
-  background-color: #23de26;
-  color: #141414;
-  box-shadow: 0 0 20px rgba(35, 222, 38, 0.7);
+.opcion.fallada {
+  border-color: var(--color-lose);
+  background-color: rgb(220 38 38 / 0.12);
+  color: #7f1d1d;
+  animation: hsv-shake 0.4s ease;
 }
 
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-anterior,
-.btn-siguiente,
-.btn-finalizar {
-  background: linear-gradient(135deg, #463aca, #30b5f2);
-  color: #fff;
-}
-
-.btn-reiniciar {
-  background-color: #881a9e;
-  color: #fff;
-  margin-top: 20px;
-  width: 100%;
-  font-size: 20px;
-}
-
-.btn-reiniciar:hover {
-  background-color: #23c963;
-  box-shadow: 0 0 20px #23c963;
-}
-
-.resultado {
-  text-align: center;
-}
-
-.resultado h2 {
-  margin-bottom: 20px;
-  color: #6f10b7;
-}
-
-.resumen-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  justify-items: center;
-}
-
-.resumen-respuesta {
-  border: 2px solid #00ff2a;
-  padding: 15px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  background-color: #1e1e1e;
-  box-shadow: 0 0 10px rgba(0, 255, 42, 0.5);
-  width: 100%;
-  text-align: left;
-}
-
-.resumen-respuesta.correcta {
-  border-color: #4caf50;
-  background-color: #2e7d32;
-}
-
-.resumen-respuesta.incorrecta {
-  border-color: #f44336;
-  background-color: #d32f2f;
-}
-
-.icono {
-  font-size: 24px;
-  color: #fff;
-  min-width: 30px;
-}
-
-.resumen-respuesta div {
-  flex: 1;
-}
-
-.navegacion {
-  display: flex;
-  margin: 10px 0 0 0;
-  justify-content: space-around;
-}
-
-.resumen-respuesta p {
-  margin-bottom: 8px;
-  font-size: 14px;
-  line-height: 1.4;
-}
-
-.resumen-respuesta:last-child:nth-child(odd) {
-  grid-column: span 2;
-}
-
-@media (max-width: 768px) {
-  .resumen-grid {
-    grid-template-columns: 1fr;
-  }
-  .resumen-respuesta:last-child:nth-child(odd) {
-    grid-column: span 1;
-  }
+@keyframes hsv-shake {
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
 }

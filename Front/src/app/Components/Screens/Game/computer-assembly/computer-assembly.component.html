@@ -1,69 +1,117 @@
-<div class="container">
-  <div class="header">
-    <div class="header-left">
-      <div class="sound-icon" (click)="toggleAudio()">🔊</div>
-      <div class="timer">⏳ {{ timeLeft }}s</div>
+<div class="on-dark flex min-h-screen flex-col
+            bg-[url('/assets/img/backgrounds/juego3.jpg')] bg-cover bg-center bg-fixed">
+
+  <app-game-header [timeLeft]="timer.remaining()" [localScore]="localScore()" levelLabel="Kids · Nivel 3 de 3" />
+
+  <div class="hsv-card mx-auto my-5 flex w-[calc(100%-2rem)] max-w-[62.5rem] flex-col gap-5 p-6">
+
+    <div class="flex flex-col items-center gap-3 text-center">
+      <h1 class="m-0 text-[clamp(1.35rem,4vw,1.9rem)] text-balance text-ink">
+        ¡Juancho desarmó su computador!
+      </h1>
+
+      <!--
+        La instruccion cambia segun el estado en vez de ser un cartel fijo. El
+        problema real que resuelve: la pista tactil ("toca la pieza y luego el
+        hueco") estaba siempre visible en letra pequena y se leia como
+        decoracion, asi que nadie descubria que en tablet no hay que arrastrar.
+      -->
+      <p class="m-0 min-h-7 text-lg font-bold transition-colors"
+         [class]="selection.selected() ? 'text-brand' : 'text-ink-soft'"
+         aria-live="polite">
+        {{ selection.selected() ? 'Ahora toca el hueco donde va' : 'Toca una pieza para empezar' }}
+      </p>
+
+      <p class="m-0 flex items-center gap-2.5 rounded-full bg-brand px-4 py-1.5 text-white">
+        <span class="font-body font-extrabold tabular-nums">{{ placedCount() }} de {{ parts().length }} piezas</span>
+        <span class="flex gap-1.5" aria-hidden="true">
+          @for (part of parts(); track part.type) {
+            <span class="size-3 rounded-full transition-colors"
+                  [class]="part.placed ? 'bg-white' : 'bg-white/35'"></span>
+          }
+        </span>
+      </p>
     </div>
 
-    <div class="header-center">
-      <div class="nickname"><h3>{{ nickname | titlecase}}</h3></div>
-    </div>
+    <div class="flex flex-col items-center gap-5">
 
-    <div class="header-right">
-      <div class="score">⭐ {{ score + localScore }}</div>
-      <div class="lives">
-        <span *ngFor="let _ of livesArray">❤️</span>
+      <!-- Escritorio. Las posiciones de los huecos son porcentuales sobre un
+           contenedor con aspect-ratio, asi que escalan en cualquier tamano. -->
+      <div class="w-full max-w-[35rem] rounded-xl bg-[#8b4513] p-3 shadow-xl">
+        <div class="desk-surface relative w-full rounded-lg bg-gradient-to-b from-[#704214] to-[#8b4513]">
+
+          @for (zone of zones; track zone.type) {
+            <button
+              type="button"
+              class="drop-zone absolute flex flex-col items-center justify-center gap-1
+                     rounded-lg border-[3px] p-0 transition"
+              [class]="zone.type + '-zone'"
+              [class.filled]="isZoneFilled(zone.type)"
+              [class.drag-over]="hoveredZone() === zone.type"
+              [class.candidate]="isZoneCandidate(zone.type)"
+              [class.incorrect]="rejectedZone() === zone.type"
+              [disabled]="isZoneFilled(zone.type)"
+              (dragover)="onDragOver($event, zone.type)"
+              (dragleave)="onDragLeave(zone.type)"
+              (drop)="onDrop($event, zone.type)"
+              (click)="onZoneTap(zone.type)"
+              [attr.aria-label]="
+                isZoneFilled(zone.type)
+                  ? zone.label + ' colocado'
+                  : 'Hueco para el ' + zone.label
+              ">
+              @if (partFor(zone.type); as placed) {
+                <img [src]="placed.img" [alt]="placed.label" class="size-full object-contain">
+                <!-- El acierto no se marca solo con color verde: tambien lleva
+                     check, para quien no distingue rojo de verde. -->
+                <span class="absolute -top-2.5 -right-2.5 flex size-7 items-center justify-center
+                             rounded-full bg-win text-sm text-white shadow-md" aria-hidden="true">✓</span>
+              } @else {
+                <span class="pointer-events-none text-[clamp(0.65rem,1.6vw,0.9rem)] font-extrabold">
+                  {{ zone.label }}
+                </span>
+              }
+            </button>
+          }
+
+          <div class="juancho" aria-hidden="true">
+            <div class="hat"></div>
+            <div class="juancho-head"></div>
+            <div class="juancho-body">Juancho</div>
+            <div class="backpack"></div>
+          </div>
+        </div>
+      </div>
+
+      <!--
+        Antes las piezas colocadas se ocultaban con [style.display]="'none'", asi
+        que seguian en el DOM y en el orden de tabulacion. Con @for sobre
+        pendingParts() desaparecen de verdad.
+      -->
+      <div class="grid w-full grid-cols-[repeat(auto-fit,minmax(7rem,1fr))] gap-4">
+        @for (part of pendingParts(); track part.type) {
+          <button
+            type="button"
+            class="flex min-h-piece cursor-grab flex-col items-center justify-center gap-2
+                   rounded-2xl border-4 p-3 transition active:cursor-grabbing"
+            [class]="selection.isSelected(part.type)
+              ? 'border-brand bg-brand-soft -translate-y-1 scale-105 shadow-lift'
+              : 'border-transparent bg-slate-100 shadow-md hover:scale-105'"
+            draggable="true"
+            (dragstart)="onDragStart($event, part.type)"
+            (dragend)="onDragEnd()"
+            (click)="onPartTap(part.type)"
+            [attr.aria-pressed]="selection.isSelected(part.type)"
+            [attr.aria-label]="part.label">
+            <img [src]="part.img" [alt]="" class="size-14 object-contain" aria-hidden="true">
+            <span class="font-body text-sm font-extrabold text-slate-700">{{ part.label }}</span>
+          </button>
+        } @empty {
+          <p class="col-span-full m-0 text-center text-lg font-extrabold text-win">
+            ¡Todas las piezas en su lugar! 🎉
+          </p>
+        }
       </div>
     </div>
-  </div>
-
-  <div class="instructions">
-    ¡Juancho desarmó su computador! Ayúdalo a armarlo nuevamente arrastrando las partes a su lugar correcto.
-  </div>
-
-  <div class="game-area">
-    <div class="desk">
-      <div class="desk-surface">
-        <div class="drop-zone monitor-zone" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)"
-          (drop)="onDrop($event, 'monitor')">
-          <img *ngIf="dropZones['monitor'].img" [src]="dropZones['monitor'].img" alt="Monitor" />
-          <span *ngIf="!dropZones['monitor'].img">Monitor</span>
-        </div>
-        <div class="drop-zone keyboard-zone" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)"
-          (drop)="onDrop($event, 'keyboard')">
-          <img *ngIf="dropZones['keyboard'].img" [src]="dropZones['keyboard'].img" alt="Teclado" />
-          <span *ngIf="!dropZones['keyboard'].img">Teclado</span>
-        </div>
-        <div class="drop-zone mouse-zone" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)"
-          (drop)="onDrop($event, 'mouse')">
-          <img *ngIf="dropZones['mouse'].img" [src]="dropZones['mouse'].img" alt="Ratón" />
-          <span *ngIf="!dropZones['mouse'].img">Ratón</span>
-        </div>
-        <div class="drop-zone tower-zone" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)"
-          (drop)="onDrop($event, 'tower')">
-          <img *ngIf="dropZones['tower'].img" [src]="dropZones['tower'].img" alt="Torre" />
-          <span *ngIf="!dropZones['tower'].img">Torre</span>
-        </div>
-
-        <div class="juancho">
-          <div class="hat"></div>
-          <div class="juancho-head"></div>
-          <div class="juancho-body">Juancho</div>
-          <div class="backpack"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="parts-container">
-      <div class="part" *ngFor="let part of parts" [attr.data-part]="part.type"
-        [style.display]="part.visible ? 'flex' : 'none'" draggable="true" (dragstart)="onDragStart($event, part.type)"
-        (dragend)="onDragEnd($event)">
-        <img [src]="part.emoji" [alt]="part.type" style="width:48px;height:48px;">
-      </div>
-    </div>
-  </div>
-
-  <div class="completed" [style.display]="gameCompleted ? 'block' : 'none'">
-    ¡Felicitaciones! Ayudaste a Juancho a armar su computador correctamente.
   </div>
 </div>

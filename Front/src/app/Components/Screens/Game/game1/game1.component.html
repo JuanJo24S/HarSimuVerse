@@ -1,42 +1,59 @@
-<body>
-  <div class="header">
-    <div class="header-left">
-      <div class="sound-icon" (click)="toggleAudio()">🔊</div>
-      <div class="timer">⏳ {{ tiempoRestante }}s</div>
+<!--
+  Antes esta plantilla empezaba con una etiqueta <body> dentro del componente.
+  El navegador solo admite un <body> por documento, asi que quedaba HTML
+  invalido y los estilos que apuntaban a `body` se aplicaban al documento real.
+-->
+<div class="on-dark flex min-h-screen flex-col
+            bg-[url('/assets/img/backgrounds/juego4.jpg')] bg-cover bg-center bg-fixed">
+
+  <app-game-header [timeLeft]="timer.remaining()" [localScore]="localScore()" levelLabel="Kids · Nivel 2 de 3" />
+
+  <div class="hsv-card mx-auto my-5 flex w-[calc(100%-2rem)] max-w-[62.5rem] flex-col gap-5 p-6">
+
+    <div class="flex flex-col items-center gap-3 text-center">
+      <h1 class="m-0 text-[clamp(1.35rem,4vw,1.9rem)] text-balance text-ink">
+        Encuentra las parejas
+      </h1>
+      <p class="m-0 flex items-center gap-2.5 rounded-full bg-brand px-4 py-1.5 text-white">
+        <span class="font-body font-extrabold tabular-nums">
+          {{ aciertos() }} de {{ totalParejas }} parejas
+        </span>
+      </p>
     </div>
 
-    <div class="header-center">
-      <div class="nickname"><h3>{{ nickname | titlecase}}</h3></div>
+    <!--
+      grid-cols con auto-fit: el tablero de 24 cartas se reacomoda solo. Antes
+      tenia un numero fijo de columnas y en tablet vertical se salia de la
+      pantalla a lo ancho.
+    -->
+    <div class="grid grid-cols-[repeat(auto-fit,minmax(4.5rem,1fr))] gap-2.5 select-none">
+      @for (tarjeta of tarjetas(); track $index) {
+        <button
+          type="button"
+          class="card aspect-[3/4] rounded-xl border-0 p-0"
+          [class.flipped]="tarjeta.volteada || tarjeta.encontrada"
+          [class.found]="tarjeta.encontrada"
+          [disabled]="tarjeta.encontrada"
+          (click)="seleccionarTarjeta($index)"
+          [attr.aria-label]="
+            tarjeta.volteada || tarjeta.encontrada ? tarjeta.nombre : 'Carta oculta'
+          ">
+          <span class="card-inner">
+            <span class="card-face card-front" aria-hidden="true">?</span>
+            <span class="card-face card-back">
+              <!-- Antes: [innerHTML] con un <img> dentro de un string. Ahora es
+                   un binding normal, sin sanitizado en cada render. -->
+              <img [src]="tarjeta.img" [alt]="tarjeta.nombre" loading="lazy" decoding="async">
+            </span>
+          </span>
+        </button>
+      }
     </div>
 
-    <div class="header-right">
-      <div class="score">⭐ {{ score + localScore }}</div>
-      <div class="lives">
-        <span *ngFor="let _ of livesArray">❤️</span>
-      </div>
+    <div class="flex justify-center">
+      <button type="button" class="hsv-btn hsv-btn-ghost !text-ink !border-slate-300" (click)="revolver()">
+        🔄 Revolver cartas
+      </button>
     </div>
   </div>
-
-
-  <main>
-    <div id="tablero" class="no-select">
-      <div *ngFor="let tarjeta of tarjetas" class="card" (click)="seleccionarTarjeta(tarjeta.indice)"
-        [class.flipped]="tarjeta.volteada || tarjeta.encontrada">
-        <div class="card-face front">
-          <i class="far fa-question-circle"></i>
-        </div>
-
-        <div class="card-face back">
-          <div class="back-content" [innerHTML]="tarjeta.img"></div>
-        </div>
-
-      </div>
-    </div>
-  </main>
-
-  <footer>
-    <button class="btn" (click)="generarTablero()">
-      🔄 Revolver Cartas
-    </button>
-  </footer>
-</body>
+</div>

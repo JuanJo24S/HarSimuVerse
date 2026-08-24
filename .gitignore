@@ -1,0 +1,45 @@
+# ---- Dependencias ----
+node_modules/
+vendor/
+
+# ---- Builds ----
+dist/
+.angular/
+Backend/public/build/
+Backend/public/hot
+
+# ---- Entornos / secretos ----
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# ---- Bases de datos locales ----
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+# artefactos sueltos de SQLite creados por error en la raiz del Backend
+Backend/laravel_tecnologo_juan
+Backend/laraveltecnologojuan
+
+# ---- Logs y cache ----
+*.log
+npm-debug.log*
+yarn-error.log*
+.phpunit.result.cache
+.phpunit.cache/
+
+# ---- Editores / OS ----
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.fleet/
+
+# ---- Docker ----
+docker-compose.override.yml
+
+# ---- Area de trabajo de diseno ----
+# Los artboards y el HTML sembrado del lienzo de diseno. El lienzo publicado
+# vive en su URL de artifact; el .html generado pesa 2.5MB y no aporta al repo.
+.design/

@@ -1,59 +1,81 @@
-<div class="container">
-  <div class="header">
-    <div class="header-left">
-      <div class="sound-icon" (click)="toggleAudio()">🔊</div>
-      <div class="timer">⏳ {{ tiempoRestante }}s</div>
+<div class="on-dark flex min-h-screen flex-col
+            bg-[url('/assets/img/backgrounds/juego2.jpg')] bg-cover bg-center bg-fixed">
+
+  <app-game-header [timeLeft]="timer.remaining()" [localScore]="localScore()" levelLabel="Junior · Nivel 1 de 3" />
+
+  <div class="hsv-card mx-auto my-5 flex w-[calc(100%-2rem)] max-w-[62.5rem] flex-col gap-5 p-6">
+
+    <div class="flex flex-col items-center gap-3 text-center">
+      <h1 class="m-0 text-[clamp(1.35rem,4vw,1.9rem)] text-balance text-ink">
+        Arma el computador por dentro
+      </h1>
+      <p class="m-0 min-h-7 text-lg font-bold transition-colors"
+         [class]="selection.selected() ? 'text-brand' : 'text-ink-soft'"
+         aria-live="polite">
+        {{ selection.selected() ? 'Ahora toca el hueco donde va' : 'Toca una pieza para empezar' }}
+      </p>
+      <p class="m-0 flex items-center gap-2.5 rounded-full bg-brand px-4 py-1.5 text-white">
+        <span class="font-body font-extrabold tabular-nums">{{ colocadas() }} de {{ piezas().length }} piezas</span>
+      </p>
     </div>
 
-    <div class="header-center">
-      <div class="nickname text-black"><h3>{{ nickname | titlecase}}</h3></div>
-    </div>
+    <div class="grid gap-6 lg:grid-cols-2">
 
-    <div class="header-right">
-      <div class="score">⭐ {{ score + localScore }}</div>
-      <div class="lives">
-        <span *ngFor="let _ of livesArray">❤️</span>
+      <div class="grid grid-cols-[repeat(auto-fit,minmax(7rem,1fr))] gap-3 content-start">
+        @for (pieza of pendientes(); track pieza.name) {
+          <button
+            type="button"
+            class="flex min-h-piece flex-col items-center justify-center gap-2 rounded-2xl
+                   border-4 p-3 transition"
+            [class]="selection.isSelected(pieza.name)
+              ? 'border-brand bg-brand-soft -translate-y-1 scale-105 shadow-lift'
+              : 'border-transparent bg-slate-100 shadow-md hover:scale-105'"
+            draggable="true"
+            (dragstart)="onDragStart($event, pieza.name)"
+            (dragend)="onDragEnd()"
+            (click)="onPiezaTap(pieza.name)"
+            [attr.aria-pressed]="selection.isSelected(pieza.name)"
+            [attr.aria-label]="pieza.label">
+            <img [src]="pieza.src" alt="" loading="lazy" decoding="async"
+                 class="size-14 object-contain" aria-hidden="true">
+            <span class="font-body text-sm font-extrabold text-slate-700">{{ pieza.label }}</span>
+          </button>
+        } @empty {
+          <p class="col-span-full m-0 text-center text-lg font-extrabold text-win">
+            ¡Todas las piezas colocadas! 🎉
+          </p>
+        }
       </div>
-    </div>
-  </div>
 
-
-  <div class="game-header">
-    <h1>ARRASTRA LAS PARTES DE LA COMPUTADORA A SU LUGAR CORRESPONDIENTE</h1>
-  </div>
-
-  <div class="items-container">
-    <div class="draggable-items" id="draggable-container">
-      <img
-        *ngFor="let item of draggableItems"
-        [src]="item.src"
-        [alt]="item.alt"
-        class="draggable"
-        [class.dragging]="draggedItem === item.name"
-        draggable="true"
-        [attr.data-name]="item.name"
-        [style.display]="item.visible ? 'block' : 'none'"
-        (dragstart)="onDragStart($event, item.name)"
-        (dragend)="draggedItem = ''"
-      >
-    </div>
-
-    <div class="droppable-areas">
-      <div
-        *ngFor="let area of droppableAreas"
-        class="droppable"
-        [attr.data-name]="area.name"
-        (dragover)="onDragOver($event)"
-        (dragenter)="onDragEnter($event)"
-        (dragleave)="onDragLeave($event)"
-        (drop)="onDrop($event, area.name)"
-      >
-        <span [style.display]="area.filled ? 'none' : 'block'">{{ area.label }}</span>
-        <img
-          [src]="area.imageSrc"
-          [alt]="area.alt"
-          [style.display]="area.filled ? 'block' : 'none'"
-        >
+      <div class="grid grid-cols-[repeat(auto-fit,minmax(7rem,1fr))] gap-3 content-start">
+        @for (hueco of huecos(); track hueco.name) {
+          <button
+            type="button"
+            class="slot flex min-h-piece flex-col items-center justify-center gap-2 rounded-2xl
+                   border-4 p-3 transition"
+            [class.filled]="huecoLleno(hueco.name)"
+            [class.hovered]="hoveredZone() === hueco.name"
+            [class.candidate]="huecoCandidato(hueco.name)"
+            [class.incorrect]="rejectedZone() === hueco.name"
+            [disabled]="huecoLleno(hueco.name)"
+            (dragover)="onDragOver($event, hueco.name)"
+            (dragleave)="onDragLeave(hueco.name)"
+            (drop)="onDrop($event, hueco.name)"
+            (click)="onHuecoTap(hueco.name)"
+            [attr.aria-label]="
+              huecoLleno(hueco.name) ? hueco.label + ' colocado' : 'Hueco de ' + hueco.label
+            ">
+            @if (piezaEnHueco(hueco.name); as colocada) {
+              <img [src]="colocada.src" alt="" class="size-14 object-contain" aria-hidden="true">
+              <span class="font-body text-sm font-extrabold text-win">{{ colocada.label }} ✓</span>
+            } @else {
+              <!-- Antes el <img> del hueco vacio apuntaba a
+                   /placeholder.svg?height=100&width=100, un archivo que no
+                   existe: ocho peticiones 404 en cada carga del nivel. -->
+              <span class="font-body text-sm font-extrabold">{{ hueco.label }}</span>
+            }
+          </button>
+        }
       </div>
     </div>
   </div>

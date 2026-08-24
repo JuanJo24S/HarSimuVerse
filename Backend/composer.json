@@ -1,9 +1,13 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "harsimuverse/backend",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "description": "API de puntajes de HarSimuVerse (Laravel 12).",
+    "keywords": [
+        "laravel",
+        "api",
+        "harsimuverse"
+    ],
     "license": "MIT",
     "require": {
         "php": "^8.2",
@@ -49,7 +53,7 @@
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,queue,logs,vite --kill-others"
+            "@php artisan serve --host=0.0.0.0 --port=8000"
         ],
         "test": [
             "@php artisan config:clear --ansi",

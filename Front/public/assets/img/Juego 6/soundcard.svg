@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Tarjeta de sonido">
+  <rect width="200" height="200" fill="#f1f5f9"/>
+  <rect x="24" y="52" width="152" height="88" rx="6" fill="#14532d"/>
+  <rect x="24" y="140" width="152" height="12" rx="3" fill="#0f172a"/>
+  <g fill="#334155">
+    <rect x="34" y="152" width="14" height="10"/><rect x="54" y="152" width="14" height="10"/>
+    <rect x="74" y="152" width="14" height="10"/><rect x="94" y="152" width="14" height="10"/>
+  </g>
+  <rect x="36" y="66" width="40" height="40" rx="4" fill="#94a3b8"/>
+  <rect x="44" y="74" width="24" height="24" rx="2" fill="#475569"/>
+  <g stroke="#4ade80" stroke-width="2" fill="none" opacity="0.7">
+    <path d="M80 86 h30 M80 100 h44"/>
+  </g>
+  <g>
+    <circle cx="152" cy="72" r="9" fill="#22d3ee" stroke="#0f172a" stroke-width="3"/>
+    <circle cx="152" cy="96" r="9" fill="#f472b6" stroke="#0f172a" stroke-width="3"/>
+    <circle cx="152" cy="120" r="9" fill="#4ade80" stroke="#0f172a" stroke-width="3"/>
+  </g>
+  <path d="M96 118 l14 -11 0 30 -14 -11 z" fill="#facc15"/>
+  <g stroke="#facc15" stroke-width="3" fill="none">
+    <path d="M116 112 a10 10 0 0 1 0 18"/>
+    <path d="M124 106 a18 18 0 0 1 0 30"/>
+  </g>
+</svg>

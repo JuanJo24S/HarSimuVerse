@@ -1,9 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
-         bootstrap="vendor/autoload.php"
+         bootstrap="tests/bootstrap.php"
          colors="true"
 >
+    <!--
+        bootstrap apunta a tests/bootstrap.php y no directamente a
+        vendor/autoload.php a proposito: dentro de Docker las variables de
+        entorno del contenedor (DB_CONNECTION=pgsql, CACHE_STORE=file...) ganan
+        a este bloque <env> aunque lleve force="true", porque Laravel las lee de
+        $_SERVER y PHPUnit solo escribe en $_ENV/putenv. Sin ese bootstrap la
+        suite corria contra la base de datos de desarrollo y, al usar
+        RefreshDatabase, la borraba en cada ejecucion. Ver el comentario del
+        propio archivo.
+
+        Las variables se dejan aqui ademas del bootstrap para que la suite
+        tambien funcione fuera de Docker, donde no hay conflicto.
+    -->
     <testsuites>
         <testsuite name="Unit">
             <directory>tests/Unit</directory>
@@ -18,15 +31,15 @@
         </include>
     </source>
     <php>
-        <env name="APP_ENV" value="testing"/>
+        <env name="APP_ENV" value="testing" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
-        <env name="CACHE_STORE" value="array"/>
-        <env name="DB_CONNECTION" value="sqlite"/>
-        <env name="DB_DATABASE" value=":memory:"/>
+        <env name="CACHE_STORE" value="array" force="true"/>
+        <env name="DB_CONNECTION" value="sqlite" force="true"/>
+        <env name="DB_DATABASE" value=":memory:" force="true"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
-        <env name="SESSION_DRIVER" value="array"/>
+        <env name="SESSION_DRIVER" value="array" force="true"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>

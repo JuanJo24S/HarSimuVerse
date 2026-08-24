@@ -1,89 +1,132 @@
-<div class="game3-wrapper">
-  <div class="header">
-    <div class="header-left">
-      <div class="sound-icon" (click)="toggleAudio()">🔊</div>
-      <div class="timer">⏳ {{ tiempoRestante }}s</div>
-    </div>
+<div class="on-dark flex min-h-screen flex-col
+            bg-[url('/assets/img/backgrounds/juego5.jpg')] bg-cover bg-center bg-fixed">
 
-    <div class="header-center">
-      <div class="nickname">
-        <h3>{{ nickname | titlecase}}</h3>
-      </div>
-    </div>
+  <app-game-header
+    [timeLeft]="timer.remaining()"
+    [localScore]="localScore()"
+    [levelLabel]="'Junior · Nivel 2 de 3'" />
 
-    <div class="header-right">
-      <div class="score">⭐ {{ score + localScore }}</div>
-      <div class="lives">
-        <span *ngFor="let _ of livesArray">❤️</span>
-      </div>
-    </div>
-  </div>
+  <div class="hsv-card mx-auto my-5 flex w-[calc(100%-2rem)] max-w-[56rem] flex-col gap-5 p-6">
 
-  <div class="container">
-    <div *ngIf="!juegoTerminado" class="text-center">
-      <h1 class="titulo">{{ preguntaActualData.titulo }}</h1>
-      <div class="pregunta">{{ preguntaActualData.pregunta }}</div>
+    @if (!juegoTerminado()) {
 
-
-      <div class="flex gap-4">
-        <img [src]="preguntaActualData.imagen" [alt]="'Imagen de la pregunta ' + (preguntaActual + 1)"
-          class="imagen w-1/2">
-
-
-        <div class="opciones w-1/2">
-          <div *ngFor="let opcion of preguntaActualData.opciones" class="opcion"
-            [class.seleccionada]="esOpcionSeleccionada(opcion)" (click)="seleccionarRespuesta(opcion)">
-            {{ opcion }}
-          </div>
+      <div class="flex flex-col gap-2.5">
+        <span class="font-body text-sm font-extrabold tracking-widest text-brand">
+          PREGUNTA {{ preguntaActual() + 1 }} DE {{ preguntas.length }}
+        </span>
+        <div class="h-3 overflow-hidden rounded-full bg-slate-200"
+             role="progressbar"
+             [attr.aria-valuenow]="preguntaActual() + 1"
+             aria-valuemin="1"
+             [attr.aria-valuemax]="preguntas.length"
+             aria-label="Progreso del cuestionario">
+          <div class="h-full rounded-full bg-gradient-to-r from-brand to-violet-600 transition-[width] duration-300"
+               [style.width.%]="((preguntaActual() + 1) / preguntas.length) * 100"></div>
         </div>
       </div>
 
-      <div class="navegacion">
-        <button class="btn-anterior" (click)="preguntaAnterior()" [disabled]="esPrimeraPregunta">
-          Anterior
-        </button>
-
-        <button *ngIf="!esUltimaPregunta" class="btn-siguiente" (click)="preguntaSiguiente()"
-          [disabled]="!preguntaActualRespondida">
-          Siguiente
-        </button>
-
-        <button *ngIf="esUltimaPregunta" class="btn-finalizar" (click)="finalizarJuego()"
-          [disabled]="!todasLasPreguntasRespondidas">
-          Finalizar
-        </button>
+      <div class="flex flex-col items-center gap-5 rounded-2xl border border-slate-200 bg-slate-50 p-5
+                  sm:flex-row">
+        <img [src]="preguntaActualData().imagen" alt=""
+             class="size-28 shrink-0 rounded-2xl bg-brand-soft object-contain p-2" aria-hidden="true">
+        <h1 class="m-0 text-center text-[clamp(1.1rem,3vw,1.45rem)] leading-snug text-pretty
+                   text-ink sm:text-left">
+          {{ preguntaActualData().pregunta }}
+        </h1>
       </div>
 
-      <div class="progreso text-black">
-        Pregunta {{ preguntaActual + 1 }} de {{ preguntas.length }}
+      <!-- role="radiogroup": son opciones mutuamente excluyentes. Antes eran
+           divs con (click), inalcanzables con teclado. -->
+      <div class="flex flex-col gap-3.5" role="radiogroup" [attr.aria-label]="preguntaActualData().pregunta">
+        @for (opcion of preguntaActualData().opciones; track opcion) {
+          <button
+            type="button"
+            role="radio"
+            class="opcion flex min-h-[4.75rem] items-center gap-4 rounded-2xl border-4 p-4 text-left transition"
+            [class.seleccionada]="esOpcionSeleccionada(opcion)"
+            [class.acertada]="preguntaActualRespondida() && opcion === preguntaActualData().respuestaCorrecta"
+            [class.fallada]="esOpcionSeleccionada(opcion) && opcion !== preguntaActualData().respuestaCorrecta"
+            [attr.aria-checked]="esOpcionSeleccionada(opcion)"
+            [disabled]="preguntaActualRespondida()"
+            (click)="seleccionarRespuesta(opcion)">
+            <span class="flex-1 font-body text-base font-bold sm:text-lg">{{ opcion }}</span>
+            @if (preguntaActualRespondida() && opcion === preguntaActualData().respuestaCorrecta) {
+              <span class="text-2xl text-win" aria-hidden="true">✓</span>
+            } @else if (esOpcionSeleccionada(opcion)) {
+              <span class="text-2xl text-lose" aria-hidden="true">✗</span>
+            }
+          </button>
+        }
       </div>
-    </div>
 
-    <div *ngIf="juegoTerminado">
-      <h1 class="titulo">¡Juego Terminado!</h1>
+      <div class="flex flex-wrap gap-3">
+        <button type="button" class="hsv-btn hsv-btn-ghost !text-ink !border-slate-300 flex-1"
+                (click)="preguntaAnterior()" [disabled]="esPrimeraPregunta()">
+          ← Anterior
+        </button>
 
-      <div class="resultado">
-        <h2>Respondiste {{ contarRespuestasCorrectas() }} de {{ preguntas.length }} correctamente</h2>
+        @if (!esUltimaPregunta()) {
+          <button type="button" class="hsv-btn hsv-btn-primary flex-1"
+                  (click)="preguntaSiguiente()" [disabled]="!preguntaActualRespondida()">
+            Siguiente →
+          </button>
+        } @else {
+          <button type="button" class="hsv-btn hsv-btn-primary flex-1"
+                  (click)="finalizarJuego()" [disabled]="!todasLasPreguntasRespondidas()">
+            Finalizar
+          </button>
+        }
+      </div>
 
-        <div class="resumen-grid">
-          <div *ngFor="let pregunta of preguntas; let i = index" class="resumen-respuesta"
-            [class.correcta]="esRespuestaCorrecta(i)" [class.incorrecta]="!esRespuestaCorrecta(i)">
+    } @else {
 
-            <span class="icono">{{ esRespuestaCorrecta(i) ? '✓' : '✗' }}</span>
+      <div class="flex flex-col gap-5">
+        <div class="flex flex-col items-center gap-2 text-center">
+          <h1 class="m-0 text-[clamp(1.5rem,5vw,2.25rem)] text-ink">
+            {{ perdio() ? '💀 Te quedaste sin vidas' : '¡Cuestionario terminado!' }}
+          </h1>
+          <p class="m-0 text-lg font-bold text-ink-soft">
+            Acertaste <span class="text-win">{{ correctas() }}</span> de {{ preguntas.length }}
+          </p>
+        </div>
 
-            <div>
-              <p><strong>{{ pregunta.pregunta }}</strong></p>
-              <p>Tu respuesta: {{ respuestas[i] }}</p>
-              <p>Respuesta correcta: {{ pregunta.respuestaCorrecta }}</p>
+        <div class="flex flex-col gap-3">
+          @for (pregunta of preguntas; track pregunta.pregunta; let i = $index) {
+            <div class="flex gap-3.5 rounded-2xl border-2 p-4"
+                 [class]="esRespuestaCorrecta(i)
+                   ? 'border-win/50 bg-win/10'
+                   : 'border-lose/50 bg-lose/10'">
+              <span class="text-xl" [class]="esRespuestaCorrecta(i) ? 'text-win' : 'text-lose'"
+                    aria-hidden="true">{{ esRespuestaCorrecta(i) ? '✓' : '✗' }}</span>
+              <div class="flex flex-col gap-1">
+                <p class="m-0 font-body text-base font-bold text-ink">{{ pregunta.pregunta }}</p>
+                <!-- Antes mostraba "Tu respuesta: " vacio cuando la pregunta no
+                     se habia respondido. -->
+                <p class="m-0 font-body text-sm font-semibold text-ink-soft">
+                  Tu respuesta: {{ respuestaDe(i) ?? 'sin responder' }}
+                </p>
+                @if (!esRespuestaCorrecta(i)) {
+                  <p class="m-0 font-body text-sm font-semibold text-win">
+                    Correcta: {{ pregunta.respuestaCorrecta }}
+                  </p>
+                }
+              </div>
             </div>
-          </div>
+          }
         </div>
 
-        <button class="btn-reiniciar" (click)="nextLevel()">
-          Siguiente nivel
-        </button>
+        <div class="flex justify-center">
+          @if (perdio()) {
+            <button type="button" class="hsv-btn hsv-btn-primary" (click)="reiniciarJuego()">
+              🔁 Reintentar nivel
+            </button>
+          } @else {
+            <button type="button" class="hsv-btn hsv-btn-primary" (click)="nextLevel()">
+              Siguiente nivel →
+            </button>
+          }
+        </div>
       </div>
-
-    </div>
+    }
   </div>
 </div>

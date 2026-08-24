@@ -1,10 +1,3 @@
-*.log
-.DS_Store
-.env
-.env.backup
-.env.production
-.phpactor.json
-.phpunit.result.cache
 /.fleet
 /.idea
 /.nova
@@ -19,6 +12,21 @@
 /storage/*.key
 /storage/pail
 /vendor
+.DS_Store
+.env
+.env.backup
+.env.production
+.phpactor.json
+.phpunit.result.cache
 Homestead.json
 Homestead.yaml
 Thumbs.db
+*.log
+
+# Bases SQLite locales (incluidos los artefactos sueltos que quedaron en la
+# raiz del proyecto por error: laravel_tecnologo_juan / laraveltecnologojuan).
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+/laravel_tecnologo_juan
+/laraveltecnologojuan

@@ -1,10 +1,77 @@
-<div class="parent">
-  <div class="text-center">
-    <h3 class="text-8xl text-gray-700">Selecciona tu edad</h3>
+<div class="relative flex min-h-screen flex-col gap-8
+            bg-[url('/assets/img/backgrounds/seleccionador.jpg')] bg-cover bg-center px-6 pt-6 pb-12">
+
+  <!-- Degradado: el titulo oscuro necesita una base clara garantizada, sea cual
+       sea la zona de la foto que toque en cada tamano de pantalla. -->
+  <div class="absolute inset-0 bg-gradient-to-b from-slate-50/85 via-slate-50/50 to-slate-50/90"></div>
+
+  <div class="relative flex justify-end">
+    <!-- Antes era un icono suelto de 48px sin texto. Con etiqueta se entiende
+         que hace, y el area tactil sube a 56px de alto. -->
+    <button type="button"
+            class="flex min-h-tapicon items-center gap-2.5 rounded-full bg-white/95 px-5
+                   font-body text-base font-extrabold text-ink shadow-lg"
+            (click)="toggleMute()"
+            [attr.aria-label]="muted ? 'Activar sonido' : 'Silenciar sonido'">
+      <span aria-hidden="true">{{ muted ? '🔇' : '🔊' }}</span>
+      <span>Sonido</span>
+    </button>
   </div>
 
-  <div class="select-container">
-    <div class="select-level kids" [routerLink]="['/kids/level-1']" (click)="setDifficult('kids')"></div>
-    <div class="select-level junior" [routerLink]="['/junior/level-1']" (click)="setDifficult('junior')"></div>
+  <div class="relative flex flex-col items-center gap-2 text-center">
+    <h1 class="m-0 text-[clamp(2rem,7vw,3.25rem)] text-ink [text-shadow:0_2px_0_rgb(255_255_255/0.7)]">
+      ¿Cuántos años tienes?
+    </h1>
+    <p class="m-0 text-xl font-bold text-ink-soft">
+      Hola {{ gameStatus.nickname() | titlecase }}, elige tu grupo
+    </p>
+  </div>
+
+  <!--
+    Antes eran dos <div> vacios con [routerLink] y una imagen de fondo: sin
+    nombre accesible, sin foco, y sin decir en ningun sitio que hay en cada
+    dificultad. Ahora son botones con edad y contenido explicitos.
+  -->
+  <div class="relative flex flex-1 flex-col justify-center gap-6">
+
+    <button type="button"
+            class="group flex items-center gap-6 rounded-[1.75rem] border-4 border-alert
+                   bg-white/95 p-6 text-left shadow-xl transition
+                   hover:-translate-y-1 hover:shadow-2xl active:scale-[0.99]"
+            (click)="start('kids')"
+            aria-label="Dificultad Kids, para niños de 4 a 7 años">
+      <img src="/assets/img/seleccionador/edad4-7.png" alt=""
+           class="size-32 shrink-0 rounded-3xl bg-amber-100 object-contain p-2">
+      <span class="flex flex-1 flex-col gap-2">
+        <span class="font-display text-4xl text-ink">Kids</span>
+        <span class="self-start rounded-full bg-alert px-4 py-1 text-lg font-extrabold text-ink">
+          4 a 7 años
+        </span>
+        <span class="font-body text-base font-semibold text-ink-soft">
+          Parejas, memoria y armar el computador
+        </span>
+      </span>
+      <span class="text-4xl text-slate-400 transition group-hover:translate-x-1" aria-hidden="true">›</span>
+    </button>
+
+    <button type="button"
+            class="group flex items-center gap-6 rounded-[1.75rem] border-4 border-brand
+                   bg-white/95 p-6 text-left shadow-xl transition
+                   hover:-translate-y-1 hover:shadow-2xl active:scale-[0.99]"
+            (click)="start('junior')"
+            aria-label="Dificultad Junior, para niños de 8 años o más">
+      <img src="/assets/img/seleccionador/edad-5.png" alt=""
+           class="size-32 shrink-0 rounded-3xl bg-brand-soft object-contain p-2">
+      <span class="flex flex-1 flex-col gap-2">
+        <span class="font-display text-4xl text-ink">Junior</span>
+        <span class="self-start rounded-full bg-brand px-4 py-1 text-lg font-extrabold text-white">
+          8 años o más
+        </span>
+        <span class="font-body text-base font-semibold text-ink-soft">
+          Piezas internas y preguntas de repaso
+        </span>
+      </span>
+      <span class="text-4xl text-brand transition group-hover:translate-x-1" aria-hidden="true">›</span>
+    </button>
   </div>
 </div>

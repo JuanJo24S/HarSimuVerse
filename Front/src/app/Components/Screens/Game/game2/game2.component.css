@@ -1,208 +1,49 @@
-/* Reset */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/*
+  Solo los estados del hueco y sus animaciones. El resto son utilidades de
+  Tailwind en la plantilla. (Antes: 220 lineas.)
+*/
+.slot {
+  border-style: dashed;
+  border-color: #cbd5e1;
+  background-color: #f8fafc;
+  color: #64748b;
 }
 
-:host {
-  font-family: "Press Start 2P", system-ui;
-  background-color: #330055;
-  background-image: url('/assets/img/backgrounds/juego4.jpg');
-  background-attachment: fixed;
-  background-size: contain;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  position: relative;
+.slot.hovered {
+  border-color: var(--color-brand);
+  background-color: var(--color-brand-soft);
 }
 
-
-.header {
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto 30px auto;
-    background-color: rgba(189, 195, 199, 0.9);
-    border-bottom: 3px solid #6f10b7;
-    padding: 20px 30px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: #fff;
-    font-size: 20px;
-    box-shadow: 0 4px 15px rgba(111, 16, 183, 0.5);
-    margin-bottom: 30px;
-    text-shadow: 0 0 8px #6f10b7, 0 0 15px #6f10b7;
-    border-radius: 0 0 12px 12px;
+/*
+  Los huecos libres solo se resaltan cuando hay una pieza en la mano: una pista
+  permanente se lee como decoracion y deja de guiar.
+*/
+.slot.candidate {
+  border-color: var(--color-brand);
+  background-color: var(--color-brand-soft);
+  color: var(--color-brand-dark);
+  animation: hsv-slot-pulse 1.4s ease-in-out infinite;
 }
 
-.sound-icon {
-    font-size: 28px;
-    cursor: pointer;
-    transition: transform 0.2s ease, color 0.3s;
+.slot.filled {
+  border-style: solid;
+  border-color: var(--color-win);
+  background-color: rgb(22 163 74 / 0.12);
+  cursor: default;
 }
 
-.sound-icon:hover {
-    transform: scale(1.2);
-    color: #23de26;
-    text-shadow: 0 0 15px #23de26, 0 0 25px #23de26;
+.slot.incorrect {
+  border-style: solid;
+  border-color: var(--color-lose);
+  background-color: rgb(220 38 38 / 0.14);
+  animation: hsv-shake 0.4s ease;
 }
 
-.timer {
-    font-size: 18px;
-    color: black;
-    text-shadow: 0 0 5px #23de26, 0 0 10px #23de26;
-    font-weight: bold;
+@keyframes hsv-slot-pulse {
+  50% { transform: scale(1.03); }
 }
 
-.score {
-    font-size: 18px;
-    color: black;
-    text-shadow: 0 0 5px #00cfff, 0 0 10px #00cfff;
-    font-weight: bold;
-}
-
-.lives {
-    display: flex;
-    gap: 6px;
-    font-size: 22px;
-    color: #ff3b3b;
-    text-shadow: 0 0 5px #ff3b3b, 0 0 10px #ff3b3b;
-}
-
-.container {
-  text-align: center;
-  padding: 20px;
-  position: relative;
-  width: 100%;
-  max-width: 1200px;
-}
-
-.game-header {
-  margin-bottom: 40px;
-  padding: 20px;
-  background: rgba(189, 195, 199, 0.9);
-  border-radius: 10px;
-}
-
-.game-header h1 {
-  color: black;
-  margin-bottom: 20px;
-  text-shadow: 2px 2px 4px rgba(189, 195, 199, 0.9);
-}
-
-.draggable-items {
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 20px;
-  margin: 40px auto;
-  padding: 20px;
-  border-radius: 10px;
-}
-
-.items-container{
-  background-color: rgba(189, 195, 199, 0.9);
-  padding: 10px 20px;
-  border-radius: 10px;
-}
-
-.draggable {
-  cursor: move;
-  width: 100px;
-  height: 100px;
-  object-fit: contain;
-  margin: 0 auto;
-}
-
-.draggable.dragging {
-  opacity: 0.5;
-}
-
-.droppable-areas {
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  margin-bottom: 80px;
-}
-
-.droppable {
-  width: 150px;
-  height: 150px;
-  border: 2px dashed #333;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-
-.droppable img {
-  max-width: 90%;
-  max-height: 90%;
-  display: none;
-}
-
-.droppable img[style*="block"] {
-  display: block !important;
-}
-
-.droppable span {
-  color: black;
-  font-size: 12px;
-  text-align: center;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-button {
-  margin: 20px auto;
-  padding: 15px 30px;
-  font-size: 16px;
-  background-color: #1e5e7a;
-  color: rgb(0, 0, 0);
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-  display: block;
-}
-
-button:hover {
-  background-color: #656772;
-}
-
-@media (max-width: 1024px) {
-  .draggable-items {
-    grid-template-columns: repeat(4, 1fr);
-  }
-  .droppable-areas {
-    flex-wrap: wrap;
-    gap: 15px;
-  }
-  .droppable {
-    width: 120px;
-    height: 120px;
-  }
-}
-
-@media (max-width: 768px) {
-  .draggable-items {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  .draggable {
-    width: 80px;
-    height: 80px;
-  }
-  .droppable {
-    width: 100px;
-    height: 100px;
-  }
-  .game-header h1 {
-    font-size: 14px;
-  }
-  .header {
-    flex-direction: column;
-    gap: 8px;
-  }
+@keyframes hsv-shake {
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
 }

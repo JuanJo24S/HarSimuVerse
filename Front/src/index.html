@@ -1,13 +1,30 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>Front</title>
+  <title>HarSimuVerse — Aprende las partes del computador jugando</title>
   <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description"
+        content="Juego educativo para aprender las partes del computador. Dos dificultades: Kids y Junior.">
+  <meta name="theme-color" content="#4f46e5">
+
   <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+  <!--
+    La hoja de estilos global aplicaba font-family "Luckiest Guy" con !important
+    pero la fuente nunca se cargaba, asi que todo el juego caia al fallback
+    genérico `cursive` del sistema (distinto en cada equipo).
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:wght@400;600;700;800&display=swap"
+        rel="stylesheet">
 </head>
 <body>
   <app-root></app-root>
+  <noscript>
+    Este juego necesita JavaScript activado para funcionar.
+  </noscript>
 </body>
 </html>

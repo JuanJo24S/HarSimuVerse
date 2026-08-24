@@ -1,11 +1,35 @@
-<div class="form-container">
-  <div class="form-wrapper">
-    <h1 class="game-title">⚔️ HarSimuVerse ⚔️</h1>
-    <h2 class="form-title">¡Crea tu héroe y comienza la aventura!</h2>
+<!--
+  Esta pantalla usaba una paleta cian propia (#00bfff / #0066ff) que no aparecia
+  en ningun otro sitio del juego: era la primera pantalla que veia el nino y ya
+  contradecia al resto. Ahora sale del tema (brand), como todo lo demas.
+-->
+<div class="on-dark relative flex min-h-screen items-center justify-center
+            bg-[url('/assets/img/backgrounds/register.jpg')] bg-cover bg-center p-6">
 
-    <form #form="ngForm" (ngSubmit)="onSubmit(form)" class="user-form">
-      <div class="input-group">
-        <label for="nickname" class="input-label">Nombre del héroe</label>
+  <!-- Velo: el texto claro necesita contraste garantizado sobre la foto. -->
+  <div class="absolute inset-0 bg-panel-solid/65"></div>
+
+  <div class="relative flex w-full max-w-[30rem] flex-col gap-8 rounded-3xl
+              border border-brand-soft/30 bg-panel-solid/55 p-10
+              shadow-[0_24px_60px_rgb(2_6_23/0.55)] backdrop-blur-md">
+
+    <div class="flex flex-col items-center gap-2.5 text-center">
+      <div class="flex size-[4.75rem] items-center justify-center rounded-[1.375rem]
+                  bg-gradient-to-br from-brand to-violet-600 text-4xl
+                  shadow-[0_12px_28px_rgb(79_70_229/0.5)]"
+           aria-hidden="true">🖥️</div>
+      <h1 class="m-0 text-4xl text-white">HarSimuVerse</h1>
+      <p class="m-0 text-lg font-semibold text-balance text-brand-soft">
+        Crea tu héroe y empieza la aventura
+      </p>
+    </div>
+
+    <form #form="ngForm" (ngSubmit)="onSubmit()" class="flex flex-col gap-8" novalidate>
+      <div class="flex flex-col gap-2.5">
+        <label for="nickname" class="text-[0.9rem] font-extrabold tracking-wide text-brand-soft">
+          ¿Cómo te llamas?
+        </label>
+
         <input
           type="text"
           id="nickname"
@@ -14,23 +38,39 @@
           #nicknameCtrl="ngModel"
           required
           minlength="2"
-          class="form-input"
-          placeholder="Ingresa tu apodo o nombre"
-          [class.error]="nicknameCtrl.invalid && nicknameCtrl.touched"
+          maxlength="40"
+          autocomplete="nickname"
+          autocapitalize="words"
+          enterkeyhint="go"
+          placeholder="Tu apodo o tu nombre"
+          class="min-h-16 w-full rounded-2xl border-2 bg-white/15 px-4 text-xl font-bold
+                 text-white transition placeholder:font-normal placeholder:text-slate-300
+                 focus:bg-white/20 focus:outline-none"
+          [class]="nicknameCtrl.invalid && nicknameCtrl.touched
+            ? 'border-red-400 shadow-[0_0_0_4px_rgb(248_113_113/0.35)]'
+            : 'border-brand-ring/60 focus:border-brand-ring focus:shadow-[0_0_0_4px_rgb(129_140_248/0.35)]'"
+          [attr.aria-invalid]="nicknameCtrl.invalid && nicknameCtrl.touched"
+          aria-describedby="nickname-errors"
         />
 
-        <div class="error-messages" *ngIf="nicknameCtrl.invalid && nicknameCtrl.touched">
-          <small *ngIf="nicknameCtrl.errors?.['required']" class="error-text">
-            El apodo o nombre es requerido
-          </small>
-          <small *ngIf="nicknameCtrl.errors?.['minlength']" class="error-text">
-            Debe tener al menos 2 caracteres
-          </small>
+        <!-- Altura reservada: sin esto la tarjeta daba un salto al aparecer el
+             error y el boton se movia justo cuando el nino iba a tocarlo. -->
+        <div class="min-h-6" id="nickname-errors" role="alert">
+          @if (nicknameCtrl.invalid && nicknameCtrl.touched) {
+            @if (nicknameCtrl.errors?.['required']) {
+              <small class="text-sm font-semibold text-red-300">Escribe tu nombre para empezar</small>
+            } @else if (nicknameCtrl.errors?.['minlength']) {
+              <small class="text-sm font-semibold text-red-300">Necesita 2 letras o más</small>
+            }
+          } @else {
+            <small class="text-sm font-semibold text-brand-ring">Con 2 letras o más ya puedes jugar.</small>
+          }
         </div>
       </div>
 
-      <button type="submit" class="submit-button" [disabled]="form.invalid">
-        🧭 Continuar
+      <button type="submit" class="hsv-btn hsv-btn-primary w-full text-xl"
+              [disabled]="form.invalid || submitting()">
+        Continuar <span aria-hidden="true">→</span>
       </button>
     </form>
   </div>

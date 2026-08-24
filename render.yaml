@@ -1,0 +1,69 @@
+###############################################################################
+# Blueprint de Render para el backend de HarSimuVerse.
+#
+# Uso: en Render -> New + -> Blueprint -> apuntar a este repositorio.
+# Render detecta este archivo y crea el web service + la base de datos.
+#
+# El frontend NO va aqui: se despliega en Vercel (ver Front/vercel.json).
+###############################################################################
+
+databases:
+  - name: harsimuverse-db
+    databaseName: harsimuverse
+    user: harsimuverse
+    plan: free
+    postgresMajorVersion: "16"
+
+services:
+  - type: web
+    name: harsimuverse-api
+    runtime: docker
+    plan: free
+    region: oregon
+    rootDir: Backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    # OJO: los blueprints de Render no tienen campo para elegir el stage de un
+    # Dockerfile multi-stage; Render construye SIEMPRE el ultimo stage. Por eso
+    # en Backend/Dockerfile el stage `production` es el ultimo, despues de
+    # `dev`. Si se reordenan los stages, Render desplegaria el servidor de
+    # desarrollo (artisan serve, APP_DEBUG on) sin avisar.
+    healthCheckPath: /up
+    autoDeploy: true
+    envVars:
+      # APP_KEY se genera una vez y queda fija en el servicio.
+      - key: APP_KEY
+        generateValue: true
+      - key: APP_NAME
+        value: HarSimuVerse
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: LOG_LEVEL
+        value: warning
+
+      # Conexion a la base creada arriba.
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DATABASE_URL
+        fromDatabase:
+          name: harsimuverse-db
+          property: connectionString
+
+      # Sin Redis en el plan free: sesiones y cache en disco del contenedor.
+      - key: SESSION_DRIVER
+        value: file
+      - key: CACHE_STORE
+        value: file
+      - key: QUEUE_CONNECTION
+        value: sync
+
+      # IMPORTANTE: reemplazar por el dominio real de Vercel una vez desplegado.
+      # Sin esto el navegador bloquea las llamadas del front por CORS.
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: FRONTEND_URL
+        sync: false

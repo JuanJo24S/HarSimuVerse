@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Memoria cache">
+  <rect width="200" height="200" fill="#f1f5f9"/>
+  <rect x="40" y="40" width="120" height="120" rx="10" fill="#1e293b"/>
+  <rect x="56" y="56" width="88" height="88" rx="6" fill="#475569"/>
+  <g stroke="#0f172a" stroke-width="4">
+    <path d="M40 66 h-22 M40 86 h-22 M40 106 h-22 M40 126 h-22"/>
+    <path d="M160 66 h22 M160 86 h22 M160 106 h22 M160 126 h22"/>
+    <path d="M66 40 v-22 M86 40 v-22 M106 40 v-22 M126 40 v-22"/>
+    <path d="M66 160 v22 M86 160 v22 M106 160 v22 M126 160 v22"/>
+  </g>
+  <path d="M104 68 l-22 34 16 0 -8 30 26 -38 -16 0z" fill="#facc15"/>
+  <text x="100" y="136" font-family="sans-serif" font-size="15" font-weight="bold"
+        text-anchor="middle" fill="#e2e8f0">CACHE</text>
+</svg>
