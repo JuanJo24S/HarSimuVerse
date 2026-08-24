@@ -6,10 +6,9 @@ import { GameStatusService } from '../Services/game-status.service';
 /**
  * Exige una partida valida (nickname + dificultad) para entrar a un nivel.
  *
- * Sin esto se podia abrir /kids/level-3 directamente por URL: el juego
- * arrancaba con nickname vacio y, al terminar, enviaba al backend
- * { nickname: "", difficult: "" }, que el servidor rechazaba con un 422 que
- * nadie veia. El jugador terminaba el nivel y su puntaje nunca se guardaba.
+ * Sin esto se puede abrir /kids/level-3 directamente por URL: el juego arranca
+ * con nickname vacio y, al terminar, el puntaje se registra sin nombre o se
+ * descarta. El jugador termina el nivel y no aparece en ninguna tabla.
  */
 export const gameSessionGuard: CanActivateFn = () => {
   const status = inject(GameStatusService);

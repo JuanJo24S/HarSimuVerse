@@ -14,15 +14,14 @@ export interface Data {
   junior: Body[];
 }
 
-/** Lo que se necesita para registrar un puntaje. */
+/** Lo que hace falta para registrar un puntaje. */
 export type PartialData = Pick<Body, 'difficult' | 'nickname' | 'score'>;
 
-/** Resultado de registrar un puntaje, con el puesto conseguido. */
+/** Resultado de registrar un puntaje. */
 export interface StoreScoreResponse {
-  mensaje: string;
   score: Body;
   ranking: {
-    /** Puesto 1-indexado, o null si el puntaje no entro al top. */
+    /** Puesto 1-indexado, o null si no entro al top. */
     position: number | null;
     in_top: boolean;
     top_limit: number;

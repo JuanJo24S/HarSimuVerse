@@ -27,31 +27,17 @@
         </div>
       </dl>
 
-      <!-- Estado del guardado. Antes no existia: si el POST fallaba, el jugador
-           veia el ranking sin su puntaje y no tenia forma de saberlo. -->
-      <div class="mt-6 min-h-[3.5rem]" role="status" aria-live="polite">
-        @if (saving()) {
-          <p class="m-0 rounded-2xl bg-slate-500/20 px-4 py-3 font-semibold text-slate-300">
-            ⏳ Guardando tu puntaje…
-          </p>
-        } @else if (saveError()) {
-          <div class="rounded-2xl border border-red-400/45 bg-lose/20 px-4 py-3">
-            <p class="m-0 font-semibold text-red-200">⚠️ {{ saveError() }}</p>
-            <button type="button" class="hsv-btn hsv-btn-alert mt-3 text-base" (click)="submitScore()">
-              Reintentar
-            </button>
-          </div>
-        } @else if (saved()) {
-          <p class="m-0 rounded-2xl border border-emerald-400/45 bg-win/20 px-4 py-3
-                    font-semibold text-emerald-200">
+      @if (saved()) {
+        <div class="mt-6 rounded-2xl border border-emerald-400/45 bg-win/20 px-4 py-3">
+          <p class="m-0 font-semibold text-emerald-200">
             @if (position()) {
               ✅ ¡Entraste al top en el puesto {{ position() }}!
             } @else {
               ✅ Puntaje guardado. Esta vez no alcanzó para el top {{ topLimit }}.
             }
           </p>
-        }
-      </div>
+        </div>
+      }
 
       <div class="mt-6 flex flex-wrap gap-3">
         <button type="button" class="hsv-btn hsv-btn-primary flex-1" (click)="playAgain()">
@@ -65,17 +51,6 @@
 
     <!-- ---------- Rankings ---------- -->
     <div class="flex flex-[2_1_30rem] flex-wrap gap-6">
-
-      @if (loading()) {
-        <p class="hsv-panel flex-[1_1_100%] p-8 text-center" role="status">⏳ Cargando el ranking…</p>
-      } @else if (loadError()) {
-        <div class="hsv-panel flex-[1_1_100%] p-8 text-center" role="alert">
-          <p class="m-0 text-red-200">⚠️ {{ loadError() }}</p>
-          <button type="button" class="hsv-btn hsv-btn-alert mt-4 text-base" (click)="loadRanking()">
-            Reintentar
-          </button>
-        </div>
-      } @else {
 
         @for (board of boards; track board.key) {
           <section class="hsv-panel flex-[1_1_15rem] p-6" [attr.aria-labelledby]="board.key + '-heading'">
@@ -119,8 +94,7 @@
                 }
               </tbody>
             </table>
-          </section>
-        }
+        </section>
       }
     </div>
   </div>

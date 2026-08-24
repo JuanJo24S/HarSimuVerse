@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-import { Observable, of, throwError } from 'rxjs';
 
 import { Body, Data, PartialData, StoreScoreResponse } from '../Models/data';
 
@@ -9,22 +8,19 @@ const STORAGE_KEY = 'harsimuverse:scores';
 /** Cuantos puntajes se conservan por dificultad. */
 const TOP_LIMIT = 5;
 
-/** Cota superior, heredada de la validacion que hacia el backend. */
+/** Cota superior del puntaje, para que un error de calculo no bloquee el top. */
 const MAX_SCORE = 100_000;
 
 /**
  * Ranking de puntajes, guardado en el navegador.
  *
- * Antes esto hablaba con una API en Laravel respaldada por Postgres. El proyecto
- * dejo de usar backend, asi que los puntajes viven en localStorage.
+ * El ranking es POR NAVEGADOR: cada tablet ve solo sus propios puntajes, y se
+ * pierden si se limpian los datos del sitio o se juega en modo privado.
  *
- * Lo que eso implica, y conviene tener presente: el ranking es POR NAVEGADOR.
- * Cada tablet ve solo sus propios puntajes, no los de los demas, y se pierden si
- * se limpian los datos del sitio o se juega en modo privado. Deja de ser una
- * tabla de clasificacion entre jugadores y pasa a ser un historial local.
- *
- * Se mantiene la interfaz de Observables que tenia la version HTTP para que las
- * pantallas no tengan que distinguir de donde salen los datos.
+ * La API es sincrona a proposito. Antes esto hablaba por HTTP y devolvia
+ * Observables, con sus estados de carga, de error y de reintento. Leer una
+ * clave de localStorage es inmediato y no puede fallar por red, asi que todo
+ * aquello era ceremonia para simular una espera que ya no existe.
  */
 @Injectable({ providedIn: 'root' })
 export class GameDataService {
@@ -35,52 +31,46 @@ export class GameDataService {
    */
   private memoryFallback: Data = { kids: [], junior: [] };
 
-  getScores(): Observable<Data> {
-    return of(this.read());
+  /** El ranking completo. */
+  getScores(): Data {
+    return this.read();
   }
 
-  setData(data: PartialData): Observable<StoreScoreResponse> {
+  /**
+   * Registra un puntaje y devuelve el puesto conseguido.
+   *
+   * Devuelve null si el puntaje no era registrable. En la practica no ocurre:
+   * el guard de la pantalla de resultados ya exige una partida valida. Se
+   * comprueba igual para que un estado corrupto no meta basura en el ranking.
+   */
+  saveScore(data: PartialData): StoreScoreResponse | null {
     const difficult = data.difficult === 'kids' || data.difficult === 'junior' ? data.difficult : null;
-
-    if (difficult === null) {
-      // Misma comprobacion que hacia el backend: sin esto se crearian rankings
-      // fantasma que nunca se leen ni se podan.
-      return throwError(() => new Error('La dificultad no es valida.'));
-    }
-
     const nickname = data.nickname.trim().replace(/\s+/g, ' ').slice(0, 40);
 
-    if (nickname.length < 2) {
-      return throwError(() => new Error('El nickname debe tener al menos 2 caracteres.'));
+    if (difficult === null || nickname.length < 2) {
+      return null;
     }
-
-    const score = Math.min(MAX_SCORE, Math.max(0, Math.trunc(data.score)));
 
     const store = this.read();
     const entry: Body = {
       id: this.nextId(store),
       difficult,
       nickname,
-      score,
+      score: Math.min(MAX_SCORE, Math.max(0, Math.trunc(data.score))),
       created_at: new Date().toISOString(),
     };
 
-    // Se ordena y se poda igual que lo hacia el servidor, para que la pantalla
-    // de resultados siga viendo exactamente la misma forma de datos.
     const ranked = rank([...store[difficult], entry]).slice(0, TOP_LIMIT);
-    const updated: Data = { ...store, [difficult]: ranked };
-
-    this.write(updated);
+    this.write({ ...store, [difficult]: ranked });
 
     // null si el puntaje no alcanzo el top y la poda lo dejo fuera.
     const index = ranked.findIndex(item => item.id === entry.id);
     const position = index === -1 ? null : index + 1;
 
-    return of({
-      mensaje: 'Nueva puntuacion agregada',
+    return {
       score: entry,
       ranking: { position, in_top: position !== null, top_limit: TOP_LIMIT },
-    });
+    };
   }
 
   /** Vacia el ranking guardado en este navegador. */
@@ -94,17 +84,12 @@ export class GameDataService {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
 
-      if (raw === null) {
-        return { kids: [], junior: [] };
-      }
-
-      return normalize(JSON.parse(raw));
+      return raw === null ? { kids: [], junior: [] } : normalize(JSON.parse(raw));
     } catch {
       /*
-        Cubre dos casos a la vez: localStorage bloqueado, y un JSON corrupto o
-        de una version anterior. En ambos se devuelve el respaldo en memoria en
-        vez de romper la pantalla de resultados: un ranking vacio es mejor
-        informacion que una excepcion.
+        Cubre dos casos: localStorage bloqueado, y un JSON corrupto o de una
+        version anterior. En ambos se devuelve el respaldo en memoria en vez de
+        romper la pantalla: un ranking vacio informa mejor que una excepcion.
       */
       return this.memoryFallback;
     }
@@ -116,7 +101,7 @@ export class GameDataService {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
-      // Sin persistencia: el ranking vive solo en memoria hasta recargar.
+      // Sin persistencia: el ranking vive en memoria hasta recargar.
     }
   }
 
@@ -130,9 +115,8 @@ export class GameDataService {
 /**
  * Orden del ranking.
  *
- * El desempate por fecha y por id lo hace determinista: con solo `score desc`,
- * dos puntajes iguales salian en orden arbitrario y la tabla cambiaba de
- * posiciones entre recargas.
+ * El desempate por fecha y por id lo hace determinista: con solo el puntaje,
+ * dos iguales salian en orden arbitrario y la tabla cambiaba entre recargas.
  */
 function rank(items: Body[]): Body[] {
   return [...items].sort((a, b) => {
@@ -151,10 +135,7 @@ function rank(items: Body[]): Body[] {
 function normalize(raw: unknown): Data {
   const source = (raw ?? {}) as Record<string, unknown>;
 
-  return {
-    kids: toEntries(source['kids']),
-    junior: toEntries(source['junior']),
-  };
+  return { kids: toEntries(source['kids']), junior: toEntries(source['junior']) };
 }
 
 function toEntries(raw: unknown): Body[] {
