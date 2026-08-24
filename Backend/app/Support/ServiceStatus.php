@@ -99,11 +99,30 @@ class ServiceStatus
      */
     public function databaseState(): string
     {
-        return Cache::remember(
-            self::DB_CACHE_KEY,
-            self::DB_CACHE_SECONDS,
-            fn (): string => $this->probeDatabase() ? 'connected' : 'disconnected'
-        );
+        /*
+          La cache es una optimizacion, NO un requisito.
+
+          Visto en produccion: con CACHE_STORE sin configurar, Laravel cae al
+          driver `database` y ahi el propio Cache::remember lanza
+          "attempt to write a readonly database". La excepcion se propagaba y
+          tumbaba /api/health entero con un 500.
+
+          Es justo el peor sitio donde permitir eso: el endpoint de estado tiene
+          que ser lo mas robusto de la aplicacion, porque es lo que se consulta
+          cuando algo va mal. Si la cache falla, se comprueba sin cachear: se
+          paga la latencia, pero se responde.
+        */
+        try {
+            return Cache::remember(
+                self::DB_CACHE_KEY,
+                self::DB_CACHE_SECONDS,
+                fn (): string => $this->probeDatabase() ? 'connected' : 'disconnected'
+            );
+        } catch (Throwable $e) {
+            Log::debug('Cache no disponible para el estado: '.$e->getMessage());
+
+            return $this->probeDatabase() ? 'connected' : 'disconnected';
+        }
     }
 
     /**
@@ -131,6 +150,10 @@ class ServiceStatus
     /** Fuerza que la proxima consulta vuelva a comprobar de verdad. */
     public function forgetDatabaseCache(): void
     {
-        Cache::forget(self::DB_CACHE_KEY);
+        try {
+            Cache::forget(self::DB_CACHE_KEY);
+        } catch (Throwable) {
+            // Sin cache no hay nada que olvidar.
+        }
     }
 }

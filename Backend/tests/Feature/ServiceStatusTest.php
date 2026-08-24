@@ -100,6 +100,19 @@ class ServiceStatusTest extends TestCase
         $this->assertFalse(Cache::has('service-status:database'));
     }
 
+    public function test_responde_aunque_la_cache_este_rota(): void
+    {
+        /*
+          Visto en produccion: con CACHE_STORE sin configurar, Laravel cae al
+          driver `database` y Cache::remember lanza "attempt to write a readonly
+          database". La excepcion tumbaba /api/health con un 500, que es lo peor
+          que puede pasarle al endpoint que se consulta cuando algo va mal.
+        */
+        Cache::shouldReceive('remember')->andThrow(new RuntimeException('cache de solo lectura'));
+
+        $this->assertSame('connected', $this->serviceStatus()->databaseState());
+    }
+
     // ---------- Uptime ----------
 
     public function test_el_uptime_es_un_entero_no_negativo(): void
