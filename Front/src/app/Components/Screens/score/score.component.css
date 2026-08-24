@@ -1,10 +1,8 @@
-@import "tailwindcss";
+/*
+  Sin estilos propios: la pantalla se resuelve con utilidades de Tailwind sobre
+  los tokens del tema, y los paneles con la clase .hsv-panel de styles.css.
 
-:host {
-  display: block;
-  min-height: 100vh;
-  background-image: url('/assets/img/backgrounds/resultados.jpg');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-}
+  Antes eran 220 lineas. La primera version de este archivo ademas empezaba con
+  `@import "tailwindcss"`, que metia TODO Tailwind dentro del CSS con scope de
+  este unico componente y reventaba el budget de 8kB de angular.json.
+*/

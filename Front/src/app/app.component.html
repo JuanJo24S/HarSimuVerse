@@ -1,11 +1,26 @@
-<div *ngIf="showSplash" class="splash" (click)="enterApp()">
-  <div class="splash-content">
-    <h1 class="splash-title">🎮 {{ title }} 🎮</h1>
-    <p class="splash-subtitle">👆 ¡Toca para jugar! 👆</p>
-    <div class="splash-animation">
-      <div class="pulse"></div>
-    </div>
-  </div>
-</div>
-
-<router-outlet *ngIf="!showSplash"></router-outlet>
+@if (showSplash()) {
+  <!-- El splash es un boton real: se activa con teclado y lo anuncian los
+       lectores de pantalla. Antes era un div con (click). -->
+  <button type="button"
+          class="on-dark fixed inset-0 z-[9999] flex w-full cursor-pointer items-center
+                 justify-center border-0 bg-gradient-to-br from-brand to-violet-700 p-0
+                 text-white animate-fade-in"
+          (click)="enterApp()"
+          aria-label="Entrar al juego">
+    <span class="flex select-none flex-col items-center gap-4 text-center">
+      <span class="font-display text-[clamp(2.5rem,9vw,4rem)] [text-shadow:2px_2px_4px_rgb(0_0_0/0.3)]">
+        🎮 {{ title }} 🎮
+      </span>
+      <span class="font-body text-[clamp(1rem,3vw,1.2rem)] font-semibold opacity-90">
+        👆 ¡Toca para jugar! 👆
+      </span>
+      <span class="relative mt-4 block size-20" aria-hidden="true">
+        <span class="absolute inset-0 rounded-full border-[3px] border-white animate-ping-slow"></span>
+        <span class="absolute top-1/2 left-1/2 size-5 -translate-x-1/2 -translate-y-1/2
+                     rounded-full bg-white shadow-[0_0_20px_rgb(255_255_255/0.8)]"></span>
+      </span>
+    </span>
+  </button>
+} @else {
+  <router-outlet />
+}

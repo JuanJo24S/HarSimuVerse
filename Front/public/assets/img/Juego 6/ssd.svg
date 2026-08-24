@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Unidad de estado solido">
+  <rect width="200" height="200" fill="#f1f5f9"/>
+  <rect x="26" y="58" width="148" height="84" rx="8" fill="#334155"/>
+  <rect x="34" y="66" width="132" height="68" rx="5" fill="#475569"/>
+  <g fill="#0f172a">
+    <rect x="46" y="78" width="42" height="20" rx="2"/>
+    <rect x="96" y="78" width="42" height="20" rx="2"/>
+    <rect x="46" y="106" width="42" height="20" rx="2"/>
+    <rect x="96" y="106" width="42" height="20" rx="2"/>
+  </g>
+  <rect x="144" y="82" width="16" height="40" rx="2" fill="#1d4ed8"/>
+  <g fill="#94a3b8">
+    <rect x="20" y="86" width="8" height="6"/><rect x="20" y="98" width="8" height="6"/>
+    <rect x="20" y="110" width="8" height="6"/>
+  </g>
+  <path d="M100 26 l10 20 -8 0 8 18 -22 -24 8 0z" fill="#facc15"/>
+  <text x="100" y="168" font-family="sans-serif" font-size="20" font-weight="bold"
+        text-anchor="middle" fill="#334155">SSD</text>
+</svg>

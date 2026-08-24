@@ -1,311 +1,132 @@
-:host {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background-image: url('/assets/img/backgrounds/juego3.jpg');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  font-family: 'Arial Rounded MT Bold', 'Arial', sans-serif;
-  color: #333;
-}
+/*
+  Aqui solo queda lo que Tailwind no expresa bien: la geometria del escritorio y
+  los estados de los huecos. El resto son utilidades en la plantilla.
 
-.container {
-  background-color: rgba(255, 255, 255, 0.9);
-  border-radius: 15px;
-  padding: 20px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-  width: 90%;
-  max-width: 70vw;
-  text-align: center;
-}
+  Notas de lo que se arreglo antes en este archivo:
 
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 30px;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(20px);
-  border-radius: 15px;
-  margin: 20px;
-  color: #000;
-  font-weight: bold;
-}
+  - `.drop-zone * { object-fit: cover !important }` ganaba por !important sobre
+    `.drop-zone img { object-fit: contain }`, asi que las piezas colocadas
+    salian recortadas dentro del hueco.
 
-.header-left,
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
+  - Los huecos estaban posicionados en pixeles absolutos (top: 20px, left: 50px,
+    width: 150px...) dentro de un escritorio de 500x300 con overflow: hidden. En
+    movil el escritorio pasaba a width: 100% y la superficie a 200px de alto,
+    pero los huecos seguian midiendo lo mismo: se solapaban entre si y la torre
+    quedaba cortada. Ahora todo es porcentual sobre un contenedor con
+    aspect-ratio, asi que escala igual en cualquier tamano.
+*/
 
-.header-center {
-  text-align: center;
-  flex: 1;
-}
-
-.nickname {
-  font-size: 22px;
-  font-weight: 700;
-  color: #2c3e50;
-  letter-spacing: 1px;
-}
-
-.lives {
-  display: flex;
-  gap: 6px;
-  font-size: 22px;
-  color: #e74c3c;
-}
-
-.sound-icon {
-  font-size: 24px;
-  cursor: pointer;
-  transition: transform 0.2s ease-in-out;
-}
-
-.sound-icon:hover {
-  transform: scale(1.2);
-}
-
-
-.timer, .score {
-  background: rgba(255, 255, 255, 0.2);
-  padding: 10px 20px;
-  border-radius: 25px;
-  border: 2px solid rgba(0, 0, 0, 0.3);
-}
-
-h1 {
-  color: #2c3e50;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-  margin-bottom: 5px;
-}
-
-.instructions {
-  background-color: #F7DC6F;
-  padding: 10px;
-  border-radius: 8px;
-  margin: 15px 0;
-  font-weight: bold;
-}
-
-.game-area {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-around;
-  gap: 15px;
-  margin: 20px 0;
-}
-
-.desk {
-  width: 500px;
-  height: 300px;
-  background-color: #8B4513;
-  border-radius: 10px;
-  position: relative;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-}
-
+/* Mantiene la proporcion del escritorio original (480x250). */
 .desk-surface {
-  width: 480px;
-  height: 250px;
-  background: linear-gradient(to bottom, #704214, #8B4513);
-  border-radius: 8px;
-  position: relative;
+  aspect-ratio: 480 / 250;
 }
+
+/* Posiciones de los huecos, en porcentaje sobre la superficie. */
+.monitor-zone  { width: 25%;   height: 40%; top: 8%;     left: 10%; }
+.tower-zone    { width: 31%;   height: 72%; top: 8%;     right: 10%; }
+.keyboard-zone { width: 31%;   height: 24%; bottom: 12%; left: 35%; }
+.mouse-zone    { width: 16.5%; height: 32%; bottom: 12%; left: 14%; }
+
+/* ---------- Estados del hueco ---------- */
 
 .drop-zone {
-  position: absolute;
-  border: 2px dashed #3498db;
-  border-radius: 5px;
-  background-color: rgba(255, 255, 255, 0.2);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: #3498db;
-  font-weight: bold;
-  transition: all 0.3s ease;
-}
-
-.monitor-zone {
-  width: 120px;
-  height: 100px;
-  top: 20px;
-  left: 50px;
-}
-
-.keyboard-zone {
-  width: 150px;
-  height: 60px;
-  bottom: 30px;
-  left: 170px;
-}
-
-.mouse-zone {
-  width: 80px;
-  height: 80px;
-  bottom: 30px;
-  left: 70px;
-}
-
-.tower-zone {
-  width: 150px;
-  height: 180px;
-  top: 20px;
-  right: 50px;
+  border-style: dashed;
+  border-color: rgb(226 232 240 / 0.55);
+  background-color: rgb(255 255 255 / 0.14);
+  color: rgb(226 232 240 / 0.85);
 }
 
 .drop-zone.drag-over {
-  background-color: rgba(52, 152, 219, 0.3);
+  border-color: var(--color-brand-ring);
+  background-color: rgb(79 70 229 / 0.4);
 }
 
-.drop-zone.correct {
-  border: 2px solid #2ECC71;
+/*
+  Pista del modo tactil: los huecos libres solo se resaltan cuando hay una pieza
+  en la mano. Antes latian siempre, y una pista permanente se lee como fondo.
+*/
+.drop-zone.candidate {
+  border-color: var(--color-brand);
+  background-color: rgb(79 70 229 / 0.28);
+  color: #e0e7ff;
+  animation: hsv-zone-pulse 1.4s ease-in-out infinite;
+}
+
+.drop-zone.filled {
+  border-style: solid;
+  border-color: var(--color-win);
+  background-color: rgb(22 163 74 / 0.2);
+  cursor: default;
 }
 
 .drop-zone.incorrect {
-  border: 2px solid #E74C3C;
+  border-style: solid;
+  border-color: var(--color-lose);
+  background-color: rgb(220 38 38 / 0.3);
+  animation: hsv-shake 0.4s ease;
 }
 
-.drop-zone * {
-  max-width: 100% !important;
-  max-height: 100% !important;
-  object-fit: cover !important;
-  display: block !important;
+@keyframes hsv-zone-pulse {
+  50% { transform: scale(1.04); }
 }
 
-.drop-zone img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  display: block;
-  margin: 0;
-  padding: 0;
-  background: none;
-  border: none;
+@keyframes hsv-shake {
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
 }
 
-
-.parts-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
-  margin-top: 20px;
-}
-
-.part {
-  width: 80px;
-  height: 80px;
-  background-color: #f1f1f1;
-  border-radius: 10px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: grab;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
-  transition: transform 0.2s, opacity 0.2s;
-  position: relative;
-  overflow: hidden;
-}
-
-.part:hover {
-  transform: scale(1.05);
-}
-.part.dragging {
-  opacity: 0.5;
-}
-.part span {
-  font-size: 24px;
-}
+/* ---------- Juancho ---------- */
 
 .juancho {
   position: absolute;
-  bottom: 10px;
-  right: 10px;
-  width: 100px;
-  height: 150px;
+  bottom: 4%;
+  right: 2%;
+  width: 18%;
+  min-width: 64px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  pointer-events: none;
 }
+
 .juancho-head {
-  width: 50px;
-  height: 50px;
-  background-color: #FFD700;
+  width: 50%;
+  aspect-ratio: 1;
+  background-color: #ffd700;
   border-radius: 50%;
   position: relative;
   z-index: 2;
 }
+
 .juancho-body {
-  width: 60px;
-  height: 70px;
-  background-color: #2E86C1;
+  width: 62%;
+  aspect-ratio: 6 / 7;
+  background-color: #2e86c1;
   border-radius: 10px 10px 0 0;
-  margin-top: -10px;
+  margin-top: -8%;
   display: flex;
   justify-content: center;
-  align-items: center;
-  color: white;
-  font-size: 12px;
-  text-align: center;
-  padding-top: 10px;
+  align-items: flex-end;
+  color: #fff;
+  font-size: clamp(0.5rem, 1.2vw, 0.75rem);
+  padding-bottom: 0.2rem;
 }
+
 .hat {
-  width: 60px;
-  height: 20px;
-  background-color: #2E4053;
+  width: 62%;
+  aspect-ratio: 3 / 1;
+  background-color: #2e4053;
   border-radius: 50% 50% 0 0;
-  position: absolute;
-  top: -15px;
-  left: -5px;
   z-index: 1;
 }
+
 .backpack {
-  width: 30px;
-  height: 40px;
-  background-color: #E74C3C;
   position: absolute;
-  right: -10px;
-  top: 40px;
+  width: 22%;
+  aspect-ratio: 3 / 4;
+  background-color: #e74c3c;
+  right: -8%;
+  top: 45%;
   border-radius: 5px;
   z-index: 1;
-}
-
-.completed {
-  background-color: #2ECC71;
-  color: white;
-  padding: 20px;
-  border-radius: 10px;
-  margin-top: 20px;
-  font-weight: bold;
-  font-size: 24px;
-}
-
-@media (max-width: 600px) {
-  .header {
-    flex-direction: column;
-    gap: 10px;
-    font-size: 1rem;
-  }
-  .timer,
-  .score {
-    padding: 8px 14px;
-    font-size: 0.95rem;
-  }
-  .desk {
-    width: 100%;
-    height: auto;
-  }
-  .desk-surface {
-    width: 95%;
-    height: 200px;
-  }
 }

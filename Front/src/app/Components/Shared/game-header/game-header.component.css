@@ -1,0 +1,15 @@
+/*
+  Casi todo el estilo de la cabecera vive ahora en utilidades de Tailwind dentro
+  de la plantilla. Aqui solo queda lo que Tailwind no expresa: la animacion del
+  reloj en tiempo bajo.
+
+  (Antes este archivo tenia 106 lineas replicando flexbox, radios y colores que
+  el tema ya define.)
+*/
+@keyframes hsv-time-low {
+  50% { opacity: 0.5; transform: scale(1.06); }
+}
+
+.animate-time-low {
+  animation: hsv-time-low 1s ease-in-out infinite;
+}

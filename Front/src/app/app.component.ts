@@ -1,26 +1,38 @@
-import { Component, AfterViewInit, OnDestroy, ElementRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+
 import { AudioService } from './Services/audio.service';
-import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, CommonModule],
+  imports: [RouterOutlet],
   templateUrl: './app.component.html',
-  styleUrl: './app.component.css'
+  styleUrl: './app.component.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppComponent {
-  title = 'HarSimuVerse';
-  showSplash = true;
+  readonly title = 'HarSimuVerse';
 
-  constructor(private audioService: AudioService) {}
+  /** El splash tapa la app hasta el primer click, que es el gesto que el
+   *  navegador exige para permitir el audio. */
+  readonly showSplash = signal(true);
 
-  ngOnInit(): void {
-    // El audio se iniciará cuando se haga click en el splash
+  private readonly audio = inject(AudioService);
+
+  /**
+   * Antes esta clase declaraba ngOnInit sin implementar OnInit y con un cuerpo
+   * vacio, e importaba AfterViewInit, OnDestroy y ElementRef sin usarlos.
+   */
+  enterApp(): void {
+    this.audio.unlock();
+    this.showSplash.set(false);
   }
 
-  enterApp(): void {
-    this.audioService.play();
-    this.showSplash = false;
+  toggleMute(): void {
+    this.audio.toggleMute();
+  }
+
+  get muted(): boolean {
+    return this.audio.muted();
   }
 }

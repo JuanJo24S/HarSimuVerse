@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Tarjeta grafica">
+  <rect width="200" height="200" fill="#f1f5f9"/>
+  <rect x="18" y="58" width="164" height="76" rx="6" fill="#1e293b"/>
+  <rect x="18" y="134" width="164" height="12" rx="3" fill="#0f172a"/>
+  <g fill="#334155">
+    <rect x="26" y="146" width="14" height="10"/><rect x="46" y="146" width="14" height="10"/>
+    <rect x="66" y="146" width="14" height="10"/><rect x="86" y="146" width="14" height="10"/>
+    <rect x="106" y="146" width="14" height="10"/><rect x="126" y="146" width="14" height="10"/>
+  </g>
+  <circle cx="66" cy="96" r="26" fill="#475569"/>
+  <circle cx="66" cy="96" r="20" fill="#94a3b8"/>
+  <g fill="#e2e8f0">
+    <path d="M66 80 l6 12 -12 0z"/><path d="M82 96 l-12 6 0 -12z"/>
+    <path d="M66 112 l-6 -12 12 0z"/><path d="M50 96 l12 -6 0 12z"/>
+  </g>
+  <circle cx="66" cy="96" r="5" fill="#1e293b"/>
+  <circle cx="138" cy="96" r="26" fill="#475569"/>
+  <circle cx="138" cy="96" r="20" fill="#94a3b8"/>
+  <g fill="#e2e8f0">
+    <path d="M138 80 l6 12 -12 0z"/><path d="M154 96 l-12 6 0 -12z"/>
+    <path d="M138 112 l-6 -12 12 0z"/><path d="M122 96 l12 -6 0 12z"/>
+  </g>
+  <circle cx="138" cy="96" r="5" fill="#1e293b"/>
+  <rect x="18" y="46" width="164" height="12" rx="4" fill="#16a34a"/>
+</svg>

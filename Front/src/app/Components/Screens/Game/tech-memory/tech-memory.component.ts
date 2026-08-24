@@ -1,9 +1,18 @@
-import { CommonModule } from '@angular/common';
-import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit } from '@angular/core';
-import { GameStatusService } from '../../../../Services/game-status.service';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import Swal from 'sweetalert2';
 
+import { CountdownTimer } from '../../../../Core/countdown-timer';
+import {
+  DragDropSelection,
+  allowDrop,
+  readDraggedId,
+  writeDraggedId,
+} from '../../../../Core/drag-drop-selection';
+import { closeGameDialogs, gameDialog } from '../../../../Core/game-dialog';
+import { shuffle } from '../../../../Core/shuffle';
+import { GameHeaderComponent } from '../../../Shared/game-header/game-header.component';
+import { AudioService } from '../../../../Services/audio.service';
+import { GameStatusService } from '../../../../Services/game-status.service';
 
 interface GameItem {
   id: string;
@@ -13,39 +22,40 @@ interface GameItem {
   src: string;
 }
 
+/** Segundos por ronda. */
+const ROUND_SECONDS = 120;
+
+/** Puntos por pareja acertada. */
+const POINTS_PER_MATCH = 10;
+
 @Component({
   selector: 'app-tech-memory',
-  imports: [CommonModule],
+  imports: [GameHeaderComponent],
   templateUrl: './tech-memory.component.html',
-  styleUrl: './tech-memory.component.css'
+  styleUrl: './tech-memory.component.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
+export class TechMemoryComponent implements OnInit, OnDestroy {
+  readonly gameStatus = inject(GameStatusService);
+  private readonly router = inject(Router);
+  private readonly audio = inject(AudioService);
+  private readonly destroyRef = inject(DestroyRef);
 
-export class TechMemoryComponent implements OnInit, AfterViewInit, OnDestroy {
+  /** Reemplaza el setInterval manual: no duplica intervalos y se pausa con los
+   *  modales (antes el reloj corria mientras se leia "perdiste una vida"). */
+  readonly timer = new CountdownTimer(ROUND_SECONDS, () => void this.handleTimeOver());
 
- tiempo: number = 120;
-  intervalId: any;
-  localScore: number = 0;
+  /** Soporte tactil: tocar etiqueta y luego tocar icono. */
+  readonly selection = new DragDropSelection();
 
-  get score() {
-    return this.gameStatus.score();
-  }
+  readonly localScore = signal(0);
+  readonly shuffledNames = signal<string[]>([]);
+  readonly items = signal<GameItem[]>([]);
 
-  get lives() {
-    return this.gameStatus.lives();
-  }
+  /** Evita que dos eventos casi simultaneos resten dos vidas por un solo error. */
+  private resolving = false;
 
-  get nickname() {
-    return this.gameStatus.nickname();
-  }
-
-  get livesArray() {
-    return Array(this.lives).fill(0);
-  }
-
-  private observer!: IntersectionObserver;
-  private audio = new Audio('/assets/Audios/Juego1-1.mp3');
-
-  gameItems: GameItem[] = [
+  private readonly baseItems: readonly GameItem[] = [
     { id: 'android', name: 'Android', iconClass: 'android-icon', matched: false, src: '/assets/img/Juego 1/android.png' },
     { id: 'pantalla', name: 'Pantalla', iconClass: 'pantalla-icon', matched: false, src: '/assets/img/Juego 1/Pantalla-Juego1.png' },
     { id: 'teclado', name: 'Teclado', iconClass: 'teclado-icon', matched: false, src: '/assets/img/Juego 1/Teclado-Juego1.png' },
@@ -57,186 +67,232 @@ export class TechMemoryComponent implements OnInit, AfterViewInit, OnDestroy {
     { id: 'papelera', name: 'Papelera', iconClass: 'papelera-icon', matched: false, src: '/assets/img/Juego 1/Papelera-Juego1.png' },
     { id: 'chrome', name: 'Chrome', iconClass: 'chrome-icon', matched: false, src: '/assets/img/Juego 1/Google.png' },
     { id: 'cargador', name: 'Cargador', iconClass: 'cargador-icon', matched: false, src: '/assets/img/Juego 1/Cargador-Juego1.png' },
-    { id: 'carpeta', name: 'Carpeta', iconClass: 'carpeta-icon', matched: false, src: '/assets/img/Juego 1/Carpeta-Explorador de archivos-Juego1.png' }
+    { id: 'carpeta', name: 'Carpeta', iconClass: 'carpeta-icon', matched: false, src: '/assets/img/Juego 1/Carpeta-Explorador de archivos-Juego1.png' },
   ];
 
-  shuffledNames: string[] = [];
-
-  constructor(
-    private el: ElementRef,
-    public gameStatus: GameStatusService,
-    private router: Router
-  ) {
+  ngOnInit(): void {
+    /*
+      startGame() se llamaba desde el CONSTRUCTOR. Eso arrancaba el reloj antes
+      de que existiera la vista y, al ser el nivel 1, reseteaba vidas y puntaje
+      cada vez que Angular instanciaba el componente.
+    */
+    this.audio.playTrack('/assets/Audios/Juego1-1.mp3', { destroyRef: this.destroyRef });
     this.startGame();
   }
 
-  ngOnInit(): void {
-    this.audio.load();
+  ngOnDestroy(): void {
+    this.timer.stop();
+    // Sin esto, al navegar con un modal abierto el modal quedaba flotando
+    // sobre la pantalla siguiente.
+    closeGameDialogs();
   }
 
-  ngAfterViewInit(): void {
-    this.observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) this.audio.play();
-          else this.audio.pause();
-        });
-      },
-      { threshold: 0.5 }
-    );
-    this.observer.observe(this.el.nativeElement);
+  // ---------- Ciclo del juego ----------
+
+  /** Partida nueva: reinicia vidas, puntaje del nivel y tablero. */
+  private startGame(): void {
+    this.gameStatus.resetLives();
+    this.newRound();
   }
 
-  toggleAudio() {
-    if (this.audio.paused) {
-      this.audio.play().catch(err => console.log('No se pudo reproducir:', err));
-    } else {
-      this.audio.pause();
+  /**
+   * Ronda nueva conservando las vidas restantes.
+   *
+   * El resetGame() anterior no restauraba las vidas, asi que al quedarse sin
+   * ninguna el tablero se reiniciaba con 0 corazones: cualquier fallo dejaba
+   * el juego en un estado del que no se podia salir ni ganar.
+   */
+  private newRound(): void {
+    this.localScore.set(0);
+    this.selection.clear();
+    this.resolving = false;
+    this.items.set(this.baseItems.map(item => ({ ...item, matched: false })));
+    this.shuffledNames.set(shuffle(this.baseItems.map(item => item.name)));
+    this.timer.start(ROUND_SECONDS);
+  }
+
+  /** Boton "Reiniciar juego" de la plantilla. */
+  restart(): void {
+    this.startGame();
+  }
+
+  // ---------- Interaccion ----------
+
+  onDragStart(event: DragEvent, name: string): void {
+    writeDraggedId(event, name);
+    this.selection.arm(name);
+  }
+
+  /**
+   * Fin del arrastre (se dispara tanto si se solto sobre un hueco como si se
+   * cancelo soltando en el vacio).
+   *
+   * Limpiar la seleccion aqui arregla un bug de la ruta tactil/raton mezcladas:
+   * si el jugador empezaba a arrastrar y soltaba fuera, la pieza quedaba
+   * "armada" en silencio, y el siguiente click en CUALQUIER hueco la colocaba
+   * ahi sin que el jugador lo pidiera, normalmente costandole una vida.
+   * El drop ya leyo la seleccion antes de que llegue este evento, asi que
+   * limpiarla no afecta a una colocacion correcta.
+   */
+  onDragEnd(): void {
+    this.selection.clear();
+  }
+
+  onDragOver(event: DragEvent): void {
+    allowDrop(event);
+  }
+
+  /** Toque sobre una etiqueta (ruta tactil). */
+  onLabelTap(name: string): void {
+    this.selection.select(name);
+  }
+
+  onDrop(event: DragEvent, target: GameItem): void {
+    event.preventDefault();
+    void this.place(this.selection.resolveSource(readDraggedId(event)), target);
+  }
+
+  /** Toque sobre un icono (ruta tactil). */
+  onTargetTap(target: GameItem): void {
+    if (this.selection.selected() === null) {
+      return;
     }
+    void this.place(this.selection.resolveSource(null), target);
   }
 
-  startGame() {
-    this.gameStatus.setLives(3);
-    this.gameStatus.setScore(0);
-    this.tiempo = 120;
-    this.shuffledNames = this.shuffleArray([...this.gameItems.map(item => item.name)]);
-    this.startTimer();
-    this.gameItems.forEach(item => item.matched = false);
-  }
-
-  shuffleArray(array: string[]): string[] {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  /**
+   * Punto unico de colocacion: el drag de escritorio y el toque en tablet
+   * acaban aqui, asi que la puntuacion y las vidas se calculan igual en ambos.
+   */
+  private async place(source: string | null, target: GameItem): Promise<void> {
+    if (source === null || this.resolving || target.matched) {
+      return;
     }
-    return shuffled;
-  }
 
-  startTimer() {
-    this.stopTimer();
-    this.intervalId = setInterval(() => {
-      this.tiempo--;
-      if (this.tiempo <= 0) {
-        this.stopTimer();
-        this.handleTimeOver();
+    const isMatch = source.toLowerCase() === target.name.toLowerCase();
+    this.selection.clear();
+
+    if (isMatch) {
+      this.items.update(items =>
+        items.map(item => (item.id === target.id ? { ...item, matched: true } : item))
+      );
+      this.shuffledNames.update(names => names.filter(name => name !== source));
+
+      /*
+        La formula anterior era Math.max(5, Math.floor(100 / (tiempo + 1))):
+        premiaba tener MENOS tiempo restante, justo al contrario de lo
+        pretendido, y con 120s daba floor(100/121) = 0, asi que en la practica
+        siempre otorgaba exactamente 5 puntos.
+      */
+      this.localScore.update(value => value + POINTS_PER_MATCH);
+
+      if (this.shuffledNames().length === 0) {
+        await this.handleRoundWon();
       }
-    }, 1000);
-  }
-
-  stopTimer() {
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
-      this.intervalId = null;
+      return;
     }
+
+    await this.handleWrongMatch();
   }
 
-  async handleTimeOver() {
+  private async handleRoundWon(): Promise<void> {
+    this.timer.stop();
+
+    // Bonus por rapidez: un segundo restante = un punto.
+    const timeBonus = this.timer.remaining();
+    const total = this.localScore() + timeBonus;
+
+    /*
+      Antes: this.gameStatus.addScore(this.score + this.localScore).
+      addScore() ya SUMA sobre el puntaje acumulado, asi que pasarle
+      score + localScore lo contaba doble (score final = 2*score + localScore).
+
+      Y quedaba un segundo doble conteo, este solo visual: la cabecera pinta
+      gameStatus.score() + localScore(), asi que dejar localScore en `total`
+      mostraba los puntos del nivel dos veces mientras el modal estaba abierto.
+      Por eso se pone a cero justo despues de sumarlos al acumulado.
+    */
+    this.gameStatus.addScore(total);
+    this.localScore.set(0);
+
+    await gameDialog({
+      icon: 'success',
+      title: '🎉 ¡Felicidades!',
+      html: `Completaste el nivel con <b>${total}</b> puntos (incluye <b>${timeBonus}</b> de bonus por rapidez).`,
+      confirmButtonText: 'Siguiente nivel',
+      confirmButtonColor: '#16a34a',
+    });
+
+    void this.router.navigate(['/kids/level-2']);
+  }
+
+  private async handleWrongMatch(): Promise<void> {
+    this.resolving = true;
     this.gameStatus.loseLife();
 
-    if (this.lives > 0) {
-      await Swal.fire({
+    if (this.gameStatus.isGameOver()) {
+      await this.handleGameOver();
+      return;
+    }
+
+    await gameDialog(
+      {
         icon: 'warning',
-        title: '⏰ ¡Se acabó el tiempo!',
-        text: `Perdiste una vida. Te quedan ${this.lives} ${this.lives === 1 ? 'vida' : 'vidas'}.`,
-        confirmButtonText: 'Continuar',
-        confirmButtonColor: '#3085d6'
-      });
-      this.resetGame();
+        title: '⚠️ Casi',
+        text: `Esa no es la pareja correcta. Te quedan ${this.gameStatus.lives()} vidas.`,
+        confirmButtonText: 'Intentar de nuevo',
+        confirmButtonColor: '#f59e0b',
+      },
+      this.timer
+    );
+
+    this.resolving = false;
+  }
+
+  private async handleTimeOver(): Promise<void> {
+    this.gameStatus.loseLife();
+
+    if (this.gameStatus.isGameOver()) {
+      await this.handleGameOver();
+      return;
+    }
+
+    await gameDialog({
+      icon: 'warning',
+      title: '⏰ ¡Se acabó el tiempo!',
+      text: `Perdiste una vida. Te quedan ${this.gameStatus.lives()} ${
+        this.gameStatus.lives() === 1 ? 'vida' : 'vidas'
+      }.`,
+    });
+
+    this.newRound();
+  }
+
+  /**
+   * Sin vidas: se ofrece reintentar (con vidas nuevas) o salir.
+   *
+   * Antes este caso llamaba a resetGame() sin devolver las vidas, o navegaba a
+   * la ruta del propio nivel confiando en que el componente se reconstruyera.
+   */
+  private async handleGameOver(): Promise<void> {
+    this.timer.stop();
+
+    const result = await gameDialog({
+      icon: 'error',
+      title: '💀 ¡Sin vidas!',
+      text: 'Perdiste todas tus vidas. ¿Quieres intentarlo otra vez?',
+      showCancelButton: true,
+      confirmButtonText: 'Reintentar',
+      cancelButtonText: 'Salir',
+      confirmButtonColor: '#dc2626',
+    });
+
+    if (result.isConfirmed) {
+      this.gameStatus.restartRun();
+      this.startGame();
     } else {
-      await Swal.fire({
-        icon: 'error',
-        title: '💀 ¡Sin vidas!',
-        text: 'Has perdido todas tus vidas.',
-        confirmButtonText: 'Reintentar',
-        showCancelButton: true,
-        cancelButtonText: 'Salir',
-        confirmButtonColor: '#d33'
-      }).then((result) => {
-        if (result.isConfirmed) {
-          this.router.navigate(['/kids/level-1'])
-          this.gameStatus.setScore(0);
-          this.startGame();
-        } else {
-          this.router.navigate(['/']);
-        }
-      });
+      this.gameStatus.resetAll();
+      void this.router.navigate(['/home']);
     }
-  }
-
-  onDragStart(event: DragEvent, name: string) {
-    if (event.dataTransfer) {
-      event.dataTransfer.setData('text/plain', name);
-      event.dataTransfer.effectAllowed = 'move';
-    }
-  }
-
-  onDragOver(event: DragEvent) {
-    event.preventDefault();
-    event.dataTransfer!.dropEffect = 'move';
-  }
-
-  async onDrop(event: DragEvent, targetItem: GameItem) {
-    event.preventDefault();
-    const draggedName = event.dataTransfer!.getData('text/plain');
-
-    if (draggedName.toLowerCase() === targetItem.name.toLowerCase() && !targetItem.matched) {
-      targetItem.matched = true;
-      const puntos = Math.max(5, Math.floor(100 / (this.tiempo + 1)));
-      this.localScore += puntos;
-
-      const index = this.shuffledNames.indexOf(draggedName);
-      if (index > -1) this.shuffledNames.splice(index, 1);
-
-      if (this.shuffledNames.length === 0) {
-        this.gameStatus.addScore(this.score + this.localScore);
-        this.stopTimer();
-        await Swal.fire({
-          icon: 'success',
-          title: '🎉 ¡Felicidades!',
-          html: `Completaste el juego en <b>${this.tiempo}</b> segundos con <b>${this.localScore}</b> puntos.`,
-          confirmButtonText: 'Continuar',
-          confirmButtonColor: '#28a745'
-        });
-        this.router.navigate(['/kids/level-2']);
-      }
-    } else {
-      this.gameStatus.loseLife();
-
-      if (this.lives <= 0) {
-        this.stopTimer();
-        await Swal.fire({
-          icon: 'error',
-          title: '💔 ¡Juego terminado!',
-          text: 'Has perdido todas tus vidas.',
-          confirmButtonText: 'Reiniciar',
-          confirmButtonColor: '#d33'
-        });
-        this.resetGame();
-      } else {
-        await Swal.fire({
-          icon: 'warning',
-          title: '⚠️ Incorrecto',
-          text: `Esa no es la pareja correcta. Te quedan ${this.lives} vidas.`,
-          confirmButtonText: 'Intentar de nuevo',
-          confirmButtonColor: '#f0ad4e'
-        });
-      }
-    }
-  }
-
-  resetGame() {
-    this.stopTimer();
-    this.localScore = 0;
-    this.tiempo = 120;
-    this.shuffledNames = this.shuffleArray([...this.gameItems.map(item => item.name)]);
-    this.startTimer();
-    this.gameItems.forEach(item => item.matched = false);
-  }
-
-  ngOnDestroy() {
-    this.stopTimer();
-    if (this.observer) this.observer.disconnect();
-    this.audio.pause();
   }
 }

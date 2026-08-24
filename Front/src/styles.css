@@ -1,14 +1,207 @@
 @import "tailwindcss";
 
-html, body, app-root, router-outlet {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
+/*
+  Sistema visual de HarSimuVerse sobre Tailwind 4.
+
+  El problema que resuelve este archivo: Tailwind estaba instalado pero sin usar
+  (cuatro utilidades de color sueltas en todo el proyecto), y el estilo real
+  vivia en once hojas de CSS escritas a mano. Por eso convivian cuatro paletas
+  distintas — registro en cian (#00bfff), splash en morado (#667eea), selector
+  en pizarra y cabecera en slate: nada obligaba a que coincidieran.
+
+  Los tokens se declaran en @theme, asi que Tailwind genera las utilidades
+  (bg-brand, text-ink, font-display, min-h-tapbtn...) y las pantallas ya no
+  pueden inventarse un color por su cuenta sin que se note.
+*/
+@theme {
+  --font-display: "Luckiest Guy", "Comic Sans MS", cursive;
+  --font-body: "Nunito", ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand: #4f46e5;
+  --color-brand-dark: #3730a3;
+  --color-brand-soft: #eef2ff;
+  --color-brand-ring: #a5b4fc;
+
+  --color-win: #16a34a;
+  --color-lose: #dc2626;
+  --color-alert: #f59e0b;
+
+  --color-ink: #1e293b;
+  --color-ink-soft: #475569;
+
+  /* Panel oscuro: nacio en la pantalla de resultados, que es la mejor resuelta
+     del proyecto. Pasa a ser el panel estandar de todo el juego. */
+  --color-panel: rgb(15 23 42 / 0.86);
+  --color-panel-solid: #0f172a;
+  --color-panel-line: rgb(148 163 184 / 0.35);
+  --color-panel-ink: #e2e8f0;
+  --color-panel-dim: #94a3b8;
+
+  --radius-panel: 1.25rem;
+
+  --shadow-panel: 0 18px 40px rgb(2 6 23 / 0.45);
+  --shadow-lift: 0 10px 22px rgb(79 70 229 / 0.45);
+
+  /*
+    Areas tactiles. 44px es el minimo recomendado PARA ADULTOS; el usuario de
+    este juego tiene entre 4 y 12 anos y juega con el dedo en una tablet, asi
+    que los controles de juego suben de ahi. Como token, `min-h-tapbtn` se lee
+    solo y no hay que acordarse del numero en cada pantalla.
+  */
+  --spacing-tap: 44px;
+  --spacing-tapicon: 56px;
+  --spacing-tapbtn: 60px;
+  --spacing-piece: 116px;
 }
 
-body, div, label, span, p, h1, h2, h3, h4, h5, h6, small, button, input, textarea {
-  font-family: "Luckiest Guy", cursive !important;
-  font-weight: 400;
-  font-style: normal;
+@layer base {
+  html,
+  body,
+  app-root {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: var(--font-body);
+    color: var(--color-ink);
+    /* Evita el rebote elastico en tablets, que en pleno arrastre movia el tablero. */
+    overscroll-behavior: none;
+  }
+
+  /*
+    Antes una regla global forzaba "Luckiest Guy" con !important sobre TODO
+    (parrafos, inputs, small...). Es una fuente decorativa: en las preguntas
+    largas de los quizzes se volvia dificil de leer, y el !important impedia
+    corregirlo desde los componentes. Ahora la display se queda en titulos y
+    botones, y el cuerpo usa una fuente legible.
+  */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: 0.02em;
+  }
+
+  button {
+    font-family: var(--font-display);
+  }
+
+  /*
+    Foco visible en todo el juego, como red de seguridad. Varios componentes
+    hacian `outline: none` al poner sus propios estilos de hover y dejaban a
+    quien navega con tabulador sin saber donde estaba.
+  */
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 3px solid var(--color-brand);
+    outline-offset: 2px;
+    border-radius: 0.35rem;
+  }
+
+  /* Sobre fondo oscuro el indigo no destaca: se usa el tono claro del anillo. */
+  .on-dark :where(a, button, [tabindex]):focus-visible {
+    outline-color: var(--color-brand-ring);
+  }
+
+  /* Los elementos arrastrables no deben poder seleccionarse como texto. */
+  [draggable="true"] {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+}
+
+@layer components {
+  /*
+    Primitivas que se repiten en las nueve pantallas. Existen como clase y no
+    como una tira larga de utilidades copiada nueve veces porque son justo los
+    bloques que se desincronizaron la vez anterior.
+  */
+  .hsv-panel {
+    background: var(--color-panel);
+    border: 1px solid var(--color-panel-line);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-panel);
+    color: var(--color-panel-ink);
+  }
+
+  .hsv-card {
+    background: rgb(255 255 255 / 0.94);
+    border-radius: var(--radius-panel);
+    box-shadow: 0 18px 40px rgb(2 6 23 / 0.35);
+  }
+
+  /* Boton principal. min-height por token: nunca por debajo del area tactil. */
+  .hsv-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    min-height: var(--spacing-tapbtn);
+    padding: 0.5rem 1.6rem;
+    border: 0;
+    border-radius: 999px;
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: transform 0.15s ease, filter 0.15s ease;
+  }
+
+  .hsv-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    filter: brightness(1.08);
+  }
+
+  .hsv-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .hsv-btn-primary {
+    background: linear-gradient(135deg, var(--color-brand), #7c3aed);
+    color: #fff;
+    box-shadow: var(--shadow-lift);
+  }
+
+  .hsv-btn-ghost {
+    background: rgb(226 232 240 / 0.14);
+    border: 1px solid var(--color-panel-line);
+    color: var(--color-panel-ink);
+  }
+
+  .hsv-btn-alert {
+    background: var(--color-alert);
+    color: var(--color-ink);
+  }
+
+  /* Boton de icono redondo (sonido, ayuda). */
+  .hsv-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--spacing-tapicon);
+    height: var(--spacing-tapicon);
+    border: 0;
+    border-radius: 999px;
+    background: rgb(248 250 252 / 0.15);
+    color: inherit;
+    font-size: 1.35rem;
+    cursor: pointer;
+  }
+}
+
+/* Respeta la preferencia del sistema de reducir animaciones. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

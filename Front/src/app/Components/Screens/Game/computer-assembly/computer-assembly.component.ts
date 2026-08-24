@@ -1,284 +1,327 @@
-import { CommonModule } from '@angular/common';
-import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit } from '@angular/core';
-import { GameStatusService } from '../../../../Services/game-status.service';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { GameDataService } from '../../../../Services/game-data.service';
-import { PartialData } from '../../../../Models/data';
-import Swal from 'sweetalert2';
+
+import { GameHeaderComponent } from '../../../Shared/game-header/game-header.component';
+import { CountdownTimer } from '../../../../Core/countdown-timer';
+import {
+  DragDropSelection,
+  allowDrop,
+  readDraggedId,
+  writeDraggedId,
+} from '../../../../Core/drag-drop-selection';
+import { closeGameDialogs, gameDialog } from '../../../../Core/game-dialog';
+import { AudioService } from '../../../../Services/audio.service';
+import { GameStatusService } from '../../../../Services/game-status.service';
+
+type PartType = 'monitor' | 'keyboard' | 'mouse' | 'tower';
 
 interface GamePart {
-  type: string;
-  emoji: string;
-  visible: boolean;
+  type: PartType;
+  label: string;
+  img: string;
+  placed: boolean;
 }
 
-interface DropZone {
-  img: string | null;
-  filled: boolean;
-}
+const ROUND_SECONDS = 120;
+const POINTS_PER_PART = 15;
 
 @Component({
   selector: 'app-computer-assembly',
-  imports: [CommonModule],
+  imports: [GameHeaderComponent],
   templateUrl: './computer-assembly.component.html',
-  styleUrl: './computer-assembly.component.css'
+  styleUrl: './computer-assembly.component.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
+export class ComputerAssemblyComponent implements OnInit, OnDestroy {
+  readonly gameStatus = inject(GameStatusService);
+  private readonly router = inject(Router);
+  private readonly audio = inject(AudioService);
+  private readonly destroyRef = inject(DestroyRef);
 
-export class ComputerAssemblyComponent implements OnInit, AfterViewInit, OnDestroy {
+  readonly timer = new CountdownTimer(ROUND_SECONDS, () => void this.handleTimeOver());
+  readonly selection = new DragDropSelection();
 
-  constructor(
-    private el: ElementRef,
-    public gameStatus: GameStatusService,
-    private gameData: GameDataService,
-    private router: Router
-  ) {}
+  readonly localScore = signal(0);
+  readonly gameCompleted = signal(false);
 
-  private observer!: IntersectionObserver;
-  private audio = new Audio('/assets/Audios/Juego1-3.mp3');
+  /** Zona que esta recibiendo un arrastre, para el resaltado. */
+  readonly hoveredZone = signal<PartType | null>(null);
 
-  timeLeft = 120;
-  gameCompleted = false;
-  correctMatches = 0;
-  private timerInterval: any;
-  localScore: number = 0;
+  /** Zona que acaba de rechazar una pieza, para la animacion de error. */
+  readonly rejectedZone = signal<PartType | null>(null);
 
-  get lives() {
-    return this.gameStatus.lives();
-  }
+  readonly parts = signal<GamePart[]>([]);
 
-  get nickname() {
-    return this.gameStatus.nickname();
-  }
+  readonly pendingParts = computed(() => this.parts().filter(part => !part.placed));
+  readonly placedCount = computed(() => this.parts().filter(part => part.placed).length);
 
-  get score() {
-    return this.gameStatus.score();
-  }
+  private resolving = false;
+  private rejectHandle: ReturnType<typeof setTimeout> | null = null;
 
-  get livesArray() {
-    return Array(this.lives).fill(0);
-  }
-
-  get difficult() {
-    return this.gameStatus.difficult();
-  }
-
-  parts: GamePart[] = [
-    { type: 'monitor', emoji: '/assets/img/Juego 3/Pantalla-juego3.png', visible: true },
-    { type: 'keyboard', emoji: '/assets/img/Juego 3/Teclado-Juego3.png', visible: true },
-    { type: 'mouse', emoji: '/assets/img/Juego 3/Mouse-Juego3.png', visible: true },
-    { type: 'tower', emoji: '/assets/img/Juego 3/Torre-Juego3.png', visible: true }
+  private readonly basePart: ReadonlyArray<GamePart> = [
+    { type: 'monitor', label: 'Monitor', img: '/assets/img/Juego 3/Pantalla-juego3.png', placed: false },
+    { type: 'keyboard', label: 'Teclado', img: '/assets/img/Juego 3/Teclado-Juego3.png', placed: false },
+    { type: 'mouse', label: 'Ratón', img: '/assets/img/Juego 3/Mouse-Juego3.png', placed: false },
+    { type: 'tower', label: 'Torre', img: '/assets/img/Juego 3/Torre-Juego3.png', placed: false },
   ];
 
-  dropZones: { [key: string]: DropZone } = {
-    monitor: { img: null, filled: false },
-    keyboard: { img: null, filled: false },
-    mouse: { img: null, filled: false },
-    tower: { img: null, filled: false }
-  };
-
-  setScore(data: PartialData) {
-    this.gameData.setData(data).subscribe({
-      next: (res) => console.log('Respuesta del servidor', res),
-      error: (err) => {
-        console.error('Error en la petición', err);
-        console.log('Json enviado: ', data);
-      }
-    });
-  }
-
-  ngAfterViewInit(): void {
-    this.observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) this.audio.play();
-          else this.audio.pause();
-        });
-      },
-      { threshold: 0.5 }
-    );
-    this.observer.observe(this.el.nativeElement);
-  }
-
-  toggleAudio() {
-    if (this.audio.paused) this.audio.play().catch(err => console.log('No se pudo reproducir:', err));
-    else this.audio.pause();
-  }
+  /**
+   * Orden en que se pintan los huecos del escritorio.
+   *
+   * Se deriva de basePart en vez de repetir la lista: antes los tipos y los
+   * rotulos estaban escritos dos veces, asi que anadir o renombrar una pieza
+   * obligaba a tocar los dos sitios y era facil que se desincronizaran (un
+   * rotulo cambiado solo aqui deja el hueco mintiendo sobre lo que espera).
+   */
+  readonly zones: ReadonlyArray<{ type: PartType; label: string }> = this.basePart.map(
+    ({ type, label }) => ({ type, label })
+  );
 
   ngOnInit(): void {
-    this.startGame();
+    this.audio.playTrack('/assets/Audios/Juego1-3.mp3', { destroyRef: this.destroyRef });
+    this.newRound();
   }
 
   ngOnDestroy(): void {
-    if (this.timerInterval) clearInterval(this.timerInterval);
-    if (this.observer) this.observer.disconnect();
-    this.audio.pause();
+    this.timer.stop();
+    this.clearReject();
+    closeGameDialogs();
   }
 
-  private startGame(): void {
-    this.resetGame();
-    this.startTimer();
-    this.audio.load();
+  // ---------- Consultas de plantilla ----------
+
+  partFor(zone: PartType): GamePart | undefined {
+    return this.parts().find(part => part.type === zone && part.placed);
   }
 
-  private startTimer(): void {
-    if (this.timerInterval) clearInterval(this.timerInterval);
-
-    this.timerInterval = setInterval(() => {
-      this.timeLeft--;
-
-      if (this.timeLeft <= 0) {
-        this.handleTimeOver();
-      }
-    }, 1000);
+  isZoneFilled(zone: PartType): boolean {
+    return this.partFor(zone) !== undefined;
   }
 
-  private async handleTimeOver(): Promise<void> {
-    clearInterval(this.timerInterval);
+  /** Un hueco es candidato si hay una pieza tocada y todavia esta libre. */
+  isZoneCandidate(zone: PartType): boolean {
+    return this.selection.selected() !== null && !this.isZoneFilled(zone);
+  }
 
-    if (!this.gameCompleted) {
-      this.gameStatus.loseLife();
+  // ---------- Ciclo del juego ----------
 
-      if (this.lives > 0) {
-        await Swal.fire({
-          icon: 'warning',
-          title: '⏰ ¡Se acabó el tiempo!',
-          text: 'Pierdes una vida, inténtalo de nuevo.',
-          confirmButtonText: 'Continuar',
-          confirmButtonColor: '#3085d6'
-        });
-        this.resetRound();
-        this.startTimer();
-      } else {
-        await Swal.fire({
-          icon: 'error',
-          title: '💔 ¡Perdiste todas tus vidas!',
-          text: 'Reiniciando el juego...',
-          confirmButtonText: 'Aceptar',
-          confirmButtonColor: '#d33'
-        });
-        this.router.navigate(['/kids/level-1']);
-        this.startGame();
-      }
+  private newRound(): void {
+    this.timer.stop();
+    this.clearReject();
+    this.resolving = false;
+    this.selection.clear();
+    this.hoveredZone.set(null);
+    this.rejectedZone.set(null);
+    this.gameCompleted.set(false);
+    this.localScore.set(0);
+    this.parts.set(this.basePart.map(part => ({ ...part, placed: false })));
+    this.timer.start(ROUND_SECONDS);
+  }
+
+  // ---------- Arrastrar (escritorio) ----------
+
+  onDragStart(event: DragEvent, type: PartType): void {
+    writeDraggedId(event, type);
+    this.selection.arm(type);
+  }
+
+  /**
+   * Fin del arrastre (se dispara tanto si se solto sobre un hueco como si se
+   * cancelo soltando en el vacio).
+   *
+   * Limpiar la seleccion aqui arregla un bug de la ruta tactil/raton mezcladas:
+   * si el jugador empezaba a arrastrar y soltaba fuera, la pieza quedaba
+   * "armada" en silencio, y el siguiente click en CUALQUIER hueco la colocaba
+   * ahi sin que el jugador lo pidiera, normalmente costandole una vida.
+   * El drop ya leyo la seleccion antes de que llegue este evento, asi que
+   * limpiarla no afecta a una colocacion correcta.
+   */
+  onDragEnd(): void {
+    this.hoveredZone.set(null);
+    this.selection.clear();
+  }
+
+  onDragOver(event: DragEvent, zone: PartType): void {
+    allowDrop(event);
+    /*
+      Antes el resaltado se hacia con (event.target as HTMLElement).classList.
+      `target` es el elemento concreto bajo el cursor, que dentro del hueco
+      suele ser el <img> o el <span> del rotulo, no el hueco: la clase
+      .drag-over se pegaba al hijo y el borde nunca se veia. Y como
+      dragleave se disparaba en un elemento distinto al de dragover, la clase
+      quedaba pegada para siempre. Ahora el estado vive en un signal, sin
+      manipular el DOM a mano.
+    */
+    this.hoveredZone.set(zone);
+  }
+
+  onDragLeave(zone: PartType): void {
+    if (this.hoveredZone() === zone) {
+      this.hoveredZone.set(null);
     }
   }
 
-  private resetGame(): void {
-    this.timeLeft = 120;
-    this.localScore = 0;
-    this.correctMatches = 0;
-    this.gameCompleted = false;
-    this.resetPartsAndZones();
-  }
-
-  private resetRound(): void {
-    this.timeLeft = 120;
-    this.correctMatches = 0;
-    this.gameCompleted = false;
-    this.resetPartsAndZones();
-  }
-
-  private resetPartsAndZones(): void {
-    this.parts.forEach(p => p.visible = true);
-    this.dropZones = {
-      monitor: { img: null, filled: false },
-      keyboard: { img: null, filled: false },
-      mouse: { img: null, filled: false },
-      tower: { img: null, filled: false }
-    };
-  }
-
-
-  onDragStart(event: DragEvent, partType: string): void {
-    if (event.dataTransfer) event.dataTransfer.setData('text/plain', partType);
-    setTimeout(() => (event.target as HTMLElement).classList.add('dragging'), 0);
-  }
-
-  onDragEnd(event: DragEvent): void {
-    (event.target as HTMLElement).classList.remove('dragging');
-  }
-
-  onDragOver(event: DragEvent): void {
+  onDrop(event: DragEvent, zone: PartType): void {
     event.preventDefault();
-    (event.target as HTMLElement).classList.add('drag-over');
+    this.hoveredZone.set(null);
+    void this.place(this.selection.resolveSource(readDraggedId(event)), zone);
   }
 
-  onDragLeave(event: DragEvent): void {
-    (event.target as HTMLElement).classList.remove('drag-over');
+  // ---------- Tocar (tablet) ----------
+
+  onPartTap(type: PartType): void {
+    this.selection.select(type);
   }
 
-  onDrop(event: DragEvent, zoneType: string): void {
-    event.preventDefault();
-    const element = event.target as HTMLElement;
-    element.classList.remove('drag-over');
+  onZoneTap(zone: PartType): void {
+    if (this.selection.selected() === null) {
+      return;
+    }
+    void this.place(this.selection.resolveSource(null), zone);
+  }
 
-    const partType = event.dataTransfer?.getData('text/plain') || '';
+  // ---------- Colocacion ----------
 
-    if (partType === zoneType && !this.dropZones[zoneType].filled) {
-      this.handleCorrectDrop(partType, zoneType, element);
-    } else {
-      this.handleIncorrectDrop(element);
+  private async place(source: string | null, zone: PartType): Promise<void> {
+    if (source === null || this.resolving || this.gameCompleted() || this.isZoneFilled(zone)) {
+      return;
+    }
+
+    this.selection.clear();
+
+    if (source !== zone) {
+      await this.handleWrongPlacement(zone);
+      return;
+    }
+
+    this.parts.update(parts =>
+      parts.map(part => (part.type === zone ? { ...part, placed: true } : part))
+    );
+    this.localScore.update(value => value + POINTS_PER_PART);
+
+    if (this.placedCount() === this.parts().length) {
+      await this.handleCompleted();
     }
   }
 
-  private async handleCorrectDrop(partType: string, zoneType: string, element: HTMLElement): Promise<void> {
-    this.dropZones[zoneType].filled = true;
-    this.dropZones[zoneType].img = this.parts.find(p => p.type === partType)?.emoji || null;
-    element.classList.add('correct');
+  private async handleCompleted(): Promise<void> {
+    this.timer.stop();
+    this.gameCompleted.set(true);
 
-    const part = this.parts.find(p => p.type === partType);
-    if (part) part.visible = false;
+    const timeBonus = this.timer.remaining();
+    const total = this.localScore() + timeBonus;
 
-    this.correctMatches++;
-    this.localScore += 15;
+    /*
+      addScore() suma `total` al puntaje global, y la cabecera muestra
+      gameStatus.score() + localScore(). Dejar localScore en `total` hacia que
+      los puntos del nivel se vieran DOS veces en el marcador durante todo el
+      rato que el modal de fin de nivel estaba abierto. Se pone a cero: el
+      acumulado ya los tiene.
+    */
+    this.gameStatus.addScore(total);
+    this.localScore.set(0);
 
-    if (this.correctMatches === this.parts.length) {
-      this.gameStatus.addScore(this.localScore);
-      clearInterval(this.timerInterval);
-      setTimeout(() => this.gameCompleted = true, 500);
-      this.localScore = 0;
+    await gameDialog({
+      icon: 'success',
+      title: '🎉 ¡Excelente!',
+      html: `Armaste el computador de Juancho y sumaste <b>${total}</b> puntos.`,
+      confirmButtonText: 'Ver resultados',
+      confirmButtonColor: '#16a34a',
+    });
 
-      await Swal.fire({
-        icon: 'success',
-        title: '🎉 ¡Excelente!',
-        text: 'Completaste el computador de Juancho correctamente.',
-        confirmButtonText: 'Continuar',
-        confirmButtonColor: '#28a745'
-      });
-
-      const payload: PartialData = {
-        difficult: this.difficult,
-        nickname: this.nickname,
-        score: this.score
-      };
-      this.setScore(payload);
-      this.router.navigate(['/score']);
-    }
+    /*
+      Aqui estaba el POST del puntaje (this.setScore(payload)) justo antes de
+      navegar. Se movio a la pantalla de resultados por tres razones:
+        - se disparaba y se navegaba en el mismo tick, sin esperar respuesta ni
+          avisar al jugador si fallaba;
+        - usaba this.score, que en ese punto ya incluia el puntaje del nivel,
+          pero el orden respecto a addScore() era fragil;
+        - volver con el boton "atras" y avanzar de nuevo repetia el envio.
+      Ahora ScoreComponent lo envia una sola vez, con reintento y feedback.
+    */
+    void this.router.navigate(['/score']);
   }
 
-  private async handleIncorrectDrop(element: HTMLElement): Promise<void> {
-    element.classList.add('incorrect');
-    setTimeout(() => element.classList.remove('incorrect'), 800);
+  private async handleWrongPlacement(zone: PartType): Promise<void> {
+    this.resolving = true;
+
+    this.rejectedZone.set(zone);
+    this.clearReject();
+    this.rejectHandle = setTimeout(() => this.rejectedZone.set(null), 800);
 
     this.gameStatus.loseLife();
 
-    if (this.lives <= 0) {
-      clearInterval(this.timerInterval);
-      await Swal.fire({
-        icon: 'error',
-        title: '💔 ¡Perdiste todas tus vidas!',
-        text: 'Reiniciando el nivel...',
-        confirmButtonText: 'Aceptar',
-        confirmButtonColor: '#d33'
-      });
-      this.router.navigate(['/kids/level-1']);
-    } else {
-      await Swal.fire({
+    if (this.gameStatus.isGameOver()) {
+      await this.handleGameOver();
+      return;
+    }
+
+    await gameDialog(
+      {
         icon: 'warning',
-        title: '⚠️ Error',
-        text: 'Esa pieza no va ahí. ¡Intenta de nuevo!',
+        title: '⚠️ Ahí no va',
+        text: `Esa pieza no va en ese lugar. Te quedan ${this.gameStatus.lives()} vidas.`,
         confirmButtonText: 'Entendido',
-        confirmButtonColor: '#f0ad4e'
-      });
+        confirmButtonColor: '#f59e0b',
+      },
+      this.timer
+    );
+
+    this.resolving = false;
+  }
+
+  private async handleTimeOver(): Promise<void> {
+    if (this.gameCompleted()) {
+      return;
+    }
+
+    this.gameStatus.loseLife();
+
+    if (this.gameStatus.isGameOver()) {
+      await this.handleGameOver();
+      return;
+    }
+
+    await gameDialog({
+      icon: 'warning',
+      title: '⏰ ¡Se acabó el tiempo!',
+      text: `Perdiste una vida. Te quedan ${this.gameStatus.lives()}.`,
+    });
+
+    this.newRound();
+  }
+
+  /**
+   * Antes este caso hacia router.navigate(['/kids/level-1']) y despues
+   * startGame() sobre el componente que estaba a punto de destruirse, y no
+   * devolvia las vidas: el nivel 1 arrancaba con 0 corazones.
+   */
+  private async handleGameOver(): Promise<void> {
+    this.timer.stop();
+
+    const result = await gameDialog({
+      icon: 'error',
+      title: '💔 ¡Sin vidas!',
+      text: 'Perdiste todas tus vidas. ¿Reintentas este nivel?',
+      showCancelButton: true,
+      confirmButtonText: 'Reintentar',
+      cancelButtonText: 'Salir',
+      confirmButtonColor: '#dc2626',
+    });
+
+    if (result.isConfirmed) {
+      this.gameStatus.resetLives();
+      this.newRound();
+    } else {
+      this.gameStatus.resetAll();
+      void this.router.navigate(['/home']);
+    }
+  }
+
+  private clearReject(): void {
+    if (this.rejectHandle !== null) {
+      clearTimeout(this.rejectHandle);
+      this.rejectHandle = null;
     }
   }
 }

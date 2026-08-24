@@ -1,37 +1,8 @@
-:host{
-  display: block;
-  min-height: 100vh;
-  background-image: url('/assets/img/backgrounds/seleccionador.jpg');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-}
+/*
+  Sin estilos propios: esta pantalla se resuelve entera con utilidades de
+  Tailwind sobre los tokens del tema.
 
-.select-container{
-  display: flex;
-  justify-content: space-evenly;
-}
-
-.select-level{
-  min-width: 400px;
-  min-height: 400px;
-}
-
-.kids {
-  background-image: url('/assets/img/seleccionador/edad4-7.png');
-  background-repeat: no-repeat;
-  background-size: contain;
-  background-position: center;
-}
-
-.junior {
-  background-image: url('/assets/img/seleccionador/edad-5.png');
-  background-repeat: no-repeat;
-  background-size: contain;
-  background-position: center;
-}
-
-h3 {
-  margin: 0;
-  padding-top: 1rem;
-}
+  Antes eran 115 lineas que fijaban la imagen de fondo, los dos botones de
+  dificultad como cuadrados con background-image, y un boton de silencio
+  posicionado en absoluto.
+*/

@@ -1,77 +1,127 @@
-<div class="flex flex-col justify-center items-center min-h-screen bg-gradient-to-br p-8">
+<div class="on-dark flex min-h-screen flex-col items-center gap-6
+            bg-[url('/assets/img/backgrounds/resultados.jpg')] bg-cover bg-center px-4 py-8">
 
-  <h1 class="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-400 to-pink-500 drop-shadow-lg mb-10 text-center">
+  <h1 class="m-0 text-center text-[clamp(2rem,6vw,3.25rem)] text-amber-400
+             [text-shadow:0_3px_12px_rgb(2_6_23/0.6)]">
     🏆 Resultados
   </h1>
 
-  <div class="bg-white/10 backdrop-blur-lg border border-gray-700 rounded-3xl shadow-2xl p-8 w-full max-w-6xl flex flex-col md:flex-row gap-8">
+  <div class="flex w-full max-w-[75rem] flex-wrap items-start gap-6">
 
-    <div class="md:w-1/3 bg-gray-800/70 rounded-2xl p-6 shadow-inner border border-gray-600">
-      <h3 class="text-2xl font-bold mb-6 text-yellow-400 text-center">🏅 Puntaje del Jugador</h3>
+    <!-- ---------- Resumen del jugador ---------- -->
+    <section class="hsv-panel flex-[1_1_19rem] min-w-[17.5rem] p-6" aria-labelledby="player-heading">
+      <h2 id="player-heading" class="mt-0 mb-5 text-center text-2xl text-amber-300">Tu partida</h2>
 
-      <div class="space-y-6 text-lg">
+      <dl class="m-0 flex flex-col gap-4">
         <div>
-          <p class="uppercase text-gray-400 text-sm">Nick</p>
-          <p class="font-semibold text-2xl text-white tracking-wide">{{ nickname | titlecase }}</p>
+          <dt class="text-xs font-extrabold tracking-widest text-panel-dim">JUGADOR</dt>
+          <dd class="mt-1 mb-0 text-2xl font-extrabold">{{ nickname() | titlecase }}</dd>
         </div>
-
         <div>
-          <p class="uppercase text-gray-400 text-sm">Puntaje</p>
-          <p class="font-semibold text-2xl text-green-400">{{ score }}</p>
+          <dt class="text-xs font-extrabold tracking-widest text-panel-dim">PUNTAJE</dt>
+          <dd class="mt-1 mb-0 text-2xl font-extrabold text-emerald-400 tabular-nums">{{ score() }}</dd>
         </div>
-
         <div>
-          <p class="uppercase text-gray-400 text-sm">Dificultad</p>
-          <p class="font-semibold text-2xl text-blue-400">{{ difficult }}</p>
+          <dt class="text-xs font-extrabold tracking-widest text-panel-dim">DIFICULTAD</dt>
+          <dd class="mt-1 mb-0 text-2xl font-extrabold text-sky-400">{{ difficult() | titlecase }}</dd>
         </div>
-      </div>
-    </div>
+      </dl>
 
-    <div class="md:w-2/3 flex flex-col lg:flex-row gap-6 justify-between">
-
-      <div class="bg-gray-800/70 rounded-2xl p-6 border border-gray-600 shadow-md w-full lg:w-1/2">
-        <h2 class="text-xl font-semibold mb-4 text-pink-400 text-center">👶 Dificultad: Kids</h2>
-        <table class="w-full text-left text-sm">
-          <thead>
-            <tr class="text-gray-300 uppercase text-xs border-b border-gray-700">
-              <th class="pb-2">#</th>
-              <th class="pb-2">Nickname</th>
-              <th class="pb-2">Puntaje</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (item of scores?.kids; track $index) {
-            <tr class="hover:bg-white/10 transition-colors">
-              <td class="py-2 pr-3 text-gray-400">{{$index + 1}}</td>
-              <td class="py-2 pr-3">{{item.nickname}}</td>
-              <td class="py-2 pr-3 font-medium text-green-400">{{item.score}}</td>
-            </tr>
+      <!-- Estado del guardado. Antes no existia: si el POST fallaba, el jugador
+           veia el ranking sin su puntaje y no tenia forma de saberlo. -->
+      <div class="mt-6 min-h-[3.5rem]" role="status" aria-live="polite">
+        @if (saving()) {
+          <p class="m-0 rounded-2xl bg-slate-500/20 px-4 py-3 font-semibold text-slate-300">
+            ⏳ Guardando tu puntaje…
+          </p>
+        } @else if (saveError()) {
+          <div class="rounded-2xl border border-red-400/45 bg-lose/20 px-4 py-3">
+            <p class="m-0 font-semibold text-red-200">⚠️ {{ saveError() }}</p>
+            <button type="button" class="hsv-btn hsv-btn-alert mt-3 text-base" (click)="submitScore()">
+              Reintentar
+            </button>
+          </div>
+        } @else if (saved()) {
+          <p class="m-0 rounded-2xl border border-emerald-400/45 bg-win/20 px-4 py-3
+                    font-semibold text-emerald-200">
+            @if (position()) {
+              ✅ ¡Entraste al top en el puesto {{ position() }}!
+            } @else {
+              ✅ Puntaje guardado. Esta vez no alcanzó para el top {{ topLimit }}.
             }
-          </tbody>
-        </table>
+          </p>
+        }
       </div>
 
-      <div class="bg-gray-800/70 rounded-2xl p-6 border border-gray-600 shadow-md w-full lg:w-1/2">
-        <h2 class="text-xl font-semibold mb-4 text-blue-400 text-center">🧠 Dificultad: Junior</h2>
-        <table class="w-full text-left text-sm">
-          <thead>
-            <tr class="text-gray-300 uppercase text-xs border-b border-gray-700">
-              <th class="pb-2">#</th>
-              <th class="pb-2">Nickname</th>
-              <th class="pb-2">Puntaje</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (item of scores?.junior; track $index) {
-            <tr class="hover:bg-white/10 transition-colors">
-              <td class="py-2 pr-3 text-gray-400">{{$index + 1}}</td>
-              <td class="py-2 pr-3">{{item.nickname}}</td>
-              <td class="py-2 pr-3 font-medium text-yellow-400">{{item.score}}</td>
-            </tr>
-            }
-          </tbody>
-        </table>
+      <div class="mt-6 flex flex-wrap gap-3">
+        <button type="button" class="hsv-btn hsv-btn-primary flex-1" (click)="playAgain()">
+          🔁 Jugar otra vez
+        </button>
+        <button type="button" class="hsv-btn hsv-btn-ghost flex-1" (click)="goHome()">
+          🏠 Nuevo jugador
+        </button>
       </div>
+    </section>
+
+    <!-- ---------- Rankings ---------- -->
+    <div class="flex flex-[2_1_30rem] flex-wrap gap-6">
+
+      @if (loading()) {
+        <p class="hsv-panel flex-[1_1_100%] p-8 text-center" role="status">⏳ Cargando el ranking…</p>
+      } @else if (loadError()) {
+        <div class="hsv-panel flex-[1_1_100%] p-8 text-center" role="alert">
+          <p class="m-0 text-red-200">⚠️ {{ loadError() }}</p>
+          <button type="button" class="hsv-btn hsv-btn-alert mt-4 text-base" (click)="loadRanking()">
+            Reintentar
+          </button>
+        </div>
+      } @else {
+
+        @for (board of boards; track board.key) {
+          <section class="hsv-panel flex-[1_1_15rem] p-6" [attr.aria-labelledby]="board.key + '-heading'">
+            <h2 [id]="board.key + '-heading'" class="mt-0 mb-4 flex items-center gap-2 text-2xl"
+                [class]="board.accent">
+              <span aria-hidden="true">{{ board.icon }}</span>{{ board.label }}
+            </h2>
+
+            <table class="w-full border-collapse">
+              <caption class="sr-only">Los {{ topLimit }} mejores puntajes de {{ board.label }}</caption>
+              <thead>
+                <tr class="border-b border-panel-line">
+                  <th scope="col" class="w-10 pb-2 text-left text-[0.7rem] font-extrabold tracking-widest text-slate-300">#</th>
+                  <th scope="col" class="pb-2 text-left text-[0.7rem] font-extrabold tracking-widest text-slate-300">NOMBRE</th>
+                  <th scope="col" class="pb-2 text-right text-[0.7rem] font-extrabold tracking-widest text-slate-300">PUNTOS</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- track por id: con $index, al recargar el ranking Angular
+                     reutilizaba las filas por posicion en vez de por identidad. -->
+                @for (item of rowsFor(board.key); track item.id) {
+                  <tr class="border-t border-panel-line/40"
+                      [class]="isMe(item, board.key) ? 'bg-brand/40 outline outline-brand-ring' : ''">
+                    <td class="py-2.5 pr-2 tabular-nums"
+                        [class]="$index === 0 ? 'font-extrabold text-amber-400' : 'text-panel-dim'">
+                      {{ $index + 1 }}
+                    </td>
+                    <td class="py-2.5 pr-2 font-bold">
+                      {{ item.nickname }}
+                      @if (isMe(item, board.key)) {
+                        <span class="ml-1.5 rounded-full bg-brand-ring px-2 py-0.5 align-middle
+                                     text-[0.65rem] font-extrabold text-indigo-950">TÚ</span>
+                      }
+                    </td>
+                    <td class="py-2.5 text-right font-extrabold text-emerald-400 tabular-nums">{{ item.score }}</td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="3" class="py-5 text-center text-panel-dim">Aún no hay puntajes.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </section>
+        }
+      }
     </div>
   </div>
 </div>

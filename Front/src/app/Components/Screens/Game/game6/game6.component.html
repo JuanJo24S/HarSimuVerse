@@ -1,88 +1,106 @@
-<div class="container">
-  <div class="header">
-    <div class="header-left">
-      <div class="sound-icon" (click)="toggleAudio()">🔊</div>
-      <div class="timer">⏳ {{ tiempo }}s</div>
-    </div>
+<div class="on-dark flex min-h-screen flex-col
+            bg-[url('/assets/img/backgrounds/juego6.jpg')] bg-cover bg-center bg-fixed">
 
-    <div class="header-center">
-      <div class="nickname"><h3>{{ nickname | titlecase}}</h3></div>
-    </div>
+  <app-game-header [timeLeft]="timer.remaining()" [localScore]="localScore()" [levelLabel]="levelLabel()" />
 
-    <div class="header-right">
-      <div class="score">⭐ {{ score + localScore }}</div>
-      <div class="lives">
-        <span *ngFor="let _ of livesArray">❤️</span>
-      </div>
-    </div>
-  </div>
+  <div class="hsv-card mx-auto my-5 flex w-[calc(100%-2rem)] max-w-[56rem] flex-col gap-5 p-6">
 
-  <!-- <div class="level-buttons">
-    <button
-      *ngFor="let level of levels; let i = index"
-      class="level-btn"
-      [class.active]="i === currentLevel">
-      Nivel {{ i + 1 }}
-    </button>
-  </div> -->
-
-  <div class="progress-container">
-    <div class="progress-bar" [style.width.%]="progressPercentage"></div>
-  </div>
-
-  <div class="game-content" *ngIf="!levelCompleted">
-    <div class="image-container">
-      <img
-        [src]="currentQuestionData.image"
-        alt="Componente de computadora"
-        class="component-image">
-    </div>
-
-    <div class="question-container">
-      <div class="question">
-        <i class="fas fa-question-circle"></i>
-        <p>{{ currentQuestionData.question }}</p>
+    <div class="flex flex-col gap-2.5">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h1 class="m-0 text-[clamp(1.1rem,3.2vw,1.5rem)] text-ink">{{ currentLevelData().title }}</h1>
+        <span class="font-body text-sm font-extrabold tracking-widest text-brand">
+          PREGUNTA {{ currentQuestion() + 1 }} DE {{ currentLevelData().questions.length }}
+        </span>
       </div>
 
-      <div class="options">
-        <div
-          *ngFor="let option of currentQuestionData.options; let i = index"
-          class="option"
-          [class.correct]="answered && option.correct"
-          [class.incorrect]="answered && selectedOption === i && !option.correct"
-          (click)="checkAnswer(i, option.correct)">
-          <i class="fas" [class]="getOptionIcon(i)"></i>
-          <span>{{ option.text }}</span>
+      <div class="h-3 overflow-hidden rounded-full bg-slate-200"
+           role="progressbar"
+           [attr.aria-valuenow]="currentQuestion() + 1"
+           aria-valuemin="1"
+           [attr.aria-valuemax]="currentLevelData().questions.length"
+           aria-label="Progreso del nivel">
+        <div class="h-full rounded-full bg-gradient-to-r from-brand to-violet-600 transition-[width] duration-300"
+             [style.width.%]="progressPercentage()"></div>
+      </div>
+    </div>
+
+    <!--
+      Todo el bloque cuelga de @if (currentQuestionData()). Antes la seccion de
+      explicacion estaba FUERA del *ngIf y seguia leyendo
+      currentQuestionData.explanation cuando el indice ya se habia pasado del
+      final del nivel: Angular lanzaba "Cannot read properties of undefined".
+    -->
+    @if (currentQuestionData(); as question) {
+
+      <div class="flex flex-col items-center gap-5 rounded-2xl border border-slate-200 bg-slate-50 p-5
+                  sm:flex-row sm:items-center">
+        <img [src]="question.image" alt=""
+             class="size-28 shrink-0 rounded-2xl bg-brand-soft object-contain p-2" aria-hidden="true">
+        <h2 class="m-0 text-center text-[clamp(1.15rem,3.2vw,1.6rem)] leading-snug text-pretty
+                   text-ink sm:text-left">
+          {{ question.question }}
+        </h2>
+      </div>
+
+      <div class="flex flex-col gap-3.5" role="radiogroup" [attr.aria-label]="question.question">
+        @for (option of question.options; track option.text; let i = $index) {
+          <button
+            type="button"
+            role="radio"
+            class="option flex min-h-[4.75rem] items-center gap-4 rounded-2xl border-4 p-4 text-left transition"
+            [class.correct]="answered() && option.correct"
+            [class.incorrect]="answered() && selectedOption() === i && !option.correct"
+            [attr.aria-checked]="selectedOption() === i"
+            [disabled]="answered()"
+            (click)="checkAnswer(i, option.correct)">
+            <!--
+              Aqui habia <i class="fas" [class]="getOptionIcon(i)"></i>, iconos
+              de Font Awesome. La libreria nunca se cargaba (ni CSS ni kit), asi
+              que eran elementos vacios de ancho cero.
+            -->
+            <span class="option-key flex size-11 shrink-0 items-center justify-center rounded-xl
+                         font-display text-2xl" aria-hidden="true">{{ optionKey(i) }}</span>
+            <span class="flex-1 font-body text-lg font-bold">{{ option.text }}</span>
+            <!-- El resultado no se marca solo con color: tambien lleva simbolo. -->
+            @if (answered() && option.correct) {
+              <span class="text-2xl text-win" aria-hidden="true">✓</span>
+            } @else if (answered() && selectedOption() === i) {
+              <span class="text-2xl text-lose" aria-hidden="true">✗</span>
+            }
+          </button>
+        }
+      </div>
+
+      <p class="m-0 min-h-7 text-center text-lg font-extrabold"
+         [class]="feedbackClass() === 'correct' ? 'text-win'
+                : feedbackClass() === 'incorrect' ? 'text-lose' : 'text-ink-soft'"
+         role="status" aria-live="polite">
+        {{ feedbackMessage() }}
+      </p>
+
+      @if (showExplanation()) {
+        <div class="flex gap-3.5 rounded-2xl border border-brand-ring/60 bg-brand-soft p-5">
+          <span class="text-xl" aria-hidden="true">💡</span>
+          <p class="m-0 text-base font-semibold leading-relaxed text-pretty text-indigo-900">
+            {{ question.explanation }}
+          </p>
         </div>
+      }
+
+      <div class="flex flex-wrap gap-3">
+        <button type="button" class="hsv-btn hsv-btn-alert flex-1" (click)="showHint()" [disabled]="answered()">
+          💡 Pista
+        </button>
+        <button type="button" class="hsv-btn hsv-btn-primary flex-1" (click)="nextQuestion()" [disabled]="!answered()">
+          Siguiente →
+        </button>
       </div>
+    }
 
-      <div class="feedback" [class]="feedbackClass">
-        {{ feedbackMessage }}
-      </div>
-    </div>
-  </div>
-
-  <div class="explanation" [class.show]="showExplanation">
-    <h3><i class="fas fa-lightbulb"></i> Explicación:</h3>
-    <p>{{ currentQuestionData.explanation }}</p>
-  </div>
-
-  <div class="completed-screen" *ngIf="levelCompleted">
-    <div class="trophy">🏆</div>
-    <h2>¡Nivel Completado!</h2>
-    <p>Has completado este nivel con <span>{{ score }}</span> puntos.</p>
-    <button class="next-btn" (click)="nextLevel()">
-      <i class="fas fa-arrow-right"></i>
-      {{ currentLevel < levels.length - 1 ? 'Siguiente Nivel' : 'Reiniciar' }}
-    </button>
-  </div>
-
-  <div class="controls" *ngIf="!levelCompleted">
-    <button class="hint-btn" (click)="showHint()" [disabled]="answered">
-      <i class="fas fa-lightbulb"></i> Pista
-    </button>
-    <button class="next-btn" (click)="nextQuestion()" [disabled]="!answered">
-      <i class="fas fa-arrow-right"></i> Siguiente Pregunta
-    </button>
+    <!--
+      Se elimino la .completed-screen con su boton "Siguiente Nivel". Era una
+      segunda via para avanzar, en paralelo al modal de felicitacion: pulsarla
+      despues de cerrar el modal saltaba dos niveles de golpe.
+    -->
   </div>
 </div>

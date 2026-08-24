@@ -1,0 +1,34 @@
+# nginx para el bundle estatico de Angular.
+# ${PORT} lo resuelve envsubst (la imagen oficial procesa /etc/nginx/templates).
+server {
+    listen ${PORT};
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    server_tokens off;
+
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css application/json application/javascript image/svg+xml;
+
+    # Los bundles con hash son inmutables: cache agresivo.
+    location ~* \.(?:js|css|woff2?|ttf|eot|svg|png|jpe?g|gif|webp|ico|mp3)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        access_log off;
+        try_files $uri =404;
+    }
+
+    # index.html nunca se cachea: es lo que apunta a los bundles nuevos.
+    location = /index.html {
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+    }
+
+    # SPA fallback: sin esto un refresh en /kids/level-2 devuelve 404.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

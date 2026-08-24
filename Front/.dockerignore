@@ -1,0 +1,24 @@
+# Se instalan dentro de la imagen.
+node_modules/
+
+# Artefactos de build y cache del CLI.
+dist/
+.angular/
+coverage/
+
+# Entornos locales.
+.env
+.env.*
+!.env.example
+
+# Metadatos.
+.git/
+.github/
+.gitignore
+.idea/
+.vscode/
+*.log
+npm-debug.log*
+
+Dockerfile
+.dockerignore

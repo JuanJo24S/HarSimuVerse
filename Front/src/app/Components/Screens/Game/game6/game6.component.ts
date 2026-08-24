@@ -1,10 +1,11 @@
-import { GameDataService } from './../../../../Services/game-data.service';
-import { CommonModule } from '@angular/common';
-import { Component, ElementRef, AfterViewInit, OnDestroy, OnInit } from '@angular/core';
-import { GameStatusService } from '../../../../Services/game-status.service';
-import { PartialData } from '../../../../Models/data';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import Swal from 'sweetalert2';
+
+import { GameHeaderComponent } from '../../../Shared/game-header/game-header.component';
+import { CountdownTimer } from '../../../../Core/countdown-timer';
+import { closeGameDialogs, gameDialog } from '../../../../Core/game-dialog';
+import { AudioService } from '../../../../Services/audio.service';
+import { GameStatusService } from '../../../../Services/game-status.service';
 
 interface QuizOption {
   text: string;
@@ -16,6 +17,7 @@ interface QuizQuestion {
   image: string;
   options: QuizOption[];
   explanation: string;
+  hint: string;
 }
 
 interface QuizLevel {
@@ -23,505 +25,517 @@ interface QuizLevel {
   questions: QuizQuestion[];
 }
 
+const ROUND_SECONDS = 120;
+const POINTS_PER_CORRECT = 10;
+
+/*
+  Todas las imagenes eran URLs externas: Unsplash, encrypted-tbn0.gstatic.com,
+  pngwing, pngtree, lg.com, blogs.es y partesdelacomputadora.org. Eso implicaba:
+  el nivel se veia roto sin internet, dependia de siete dominios de terceros
+  que pueden cambiar o borrar las imagenes, algunas (los thumbnails de gstatic)
+  responden 403 segun el referer, y cada pregunta descargaba cientos de kB.
+
+  Ahora todo sale del propio proyecto: se reutilizan las piezas que ya estaban
+  en assets, y para los seis componentes que no tenian ilustracion se anadieron
+  SVG locales en assets/img/Juego 6.
+*/
+const LEVELS: ReadonlyArray<QuizLevel> = [
+  {
+    title: 'Nivel 1: Componentes Básicos',
+    questions: [
+      {
+        question: 'Es como el cerebro del computador:',
+        image: '/assets/img/Juego 4/procesador-Juego4.png',
+        options: [
+          { text: 'CPU', correct: true },
+          { text: 'Disco duro', correct: false },
+          { text: 'Fuente de poder', correct: false },
+        ],
+        explanation:
+          "La CPU (Unidad Central de Procesamiento) es conocida como el 'cerebro' del computador porque procesa todas las instrucciones y cálculos necesarios para que el sistema funcione.",
+        hint: 'Este componente procesa todas las instrucciones del computador.',
+      },
+      {
+        question: 'Almacena información permanentemente:',
+        image: '/assets/img/Juego 4/discoDuro-Juego4.png',
+        options: [
+          { text: 'Memoria RAM', correct: false },
+          { text: 'Disco duro', correct: true },
+          { text: 'Tarjeta gráfica', correct: false },
+        ],
+        explanation:
+          'El disco duro es el dispositivo de almacenamiento permanente que guarda todos los datos, programas y el sistema operativo incluso cuando el computador está apagado.',
+        hint: 'Guarda tus archivos y programas permanentemente.',
+      },
+      {
+        question: 'Muestra la información visual:',
+        image: '/assets/img/Juego 3/Pantalla-juego3.png',
+        options: [
+          { text: 'Monitor', correct: true },
+          { text: 'Teclado', correct: false },
+          { text: 'CPU', correct: false },
+        ],
+        explanation:
+          'El monitor es el dispositivo de salida que muestra la información visual generada por la computadora a través de la tarjeta gráfica.',
+        hint: 'Donde ves la información visual.',
+      },
+    ],
+  },
+  {
+    title: 'Nivel 2: Componentes Internos',
+    questions: [
+      {
+        question: 'Procesa los gráficos y videos:',
+        image: '/assets/img/Juego 6/gpu.svg',
+        options: [
+          { text: 'Tarjeta gráfica', correct: true },
+          { text: 'Fuente de poder', correct: false },
+          { text: 'Disco duro', correct: false },
+        ],
+        explanation:
+          'La tarjeta gráfica o GPU es un componente especializado en el procesamiento de gráficos y videos, aliviando la carga de trabajo de la CPU.',
+        hint: 'Esencial para juegos y diseño gráfico.',
+      },
+      {
+        question: 'Proporciona energía a todos los componentes:',
+        image: '/assets/img/Juego 4/fuente_poder-Juego4.png',
+        options: [
+          { text: 'Placa base', correct: false },
+          { text: 'Fuente de poder', correct: true },
+          { text: 'Procesador', correct: false },
+        ],
+        explanation:
+          'La fuente de poder convierte la corriente alterna de la pared en corriente continua a diferentes voltajes, proporcionando energía estable a todos los componentes del computador.',
+        hint: 'Sin esto, el computador no encendería.',
+      },
+      {
+        question: 'Conecta todos los componentes internos:',
+        image: '/assets/img/Juego 6/motherboard.svg',
+        options: [
+          { text: 'Placa base', correct: true },
+          { text: 'Memoria RAM', correct: false },
+          { text: 'Ventilador', correct: false },
+        ],
+        explanation:
+          'La placa base (motherboard) es la plataforma central que interconecta todos los componentes del computador, permitiendo que se comuniquen entre sí.',
+        hint: 'Todo se conecta a esta placa.',
+      },
+    ],
+  },
+  {
+    title: 'Nivel 3: Memoria y Almacenamiento',
+    questions: [
+      {
+        question: 'Memoria temporal de acceso rápido:',
+        image: '/assets/img/Juego 4/ram-Juego4.png',
+        options: [
+          { text: 'Memoria RAM', correct: true },
+          { text: 'Disco duro', correct: false },
+          { text: 'Memoria caché', correct: false },
+        ],
+        explanation:
+          'La memoria RAM (Random Access Memory) es una memoria volátil de acceso rápido que almacena temporalmente los datos que la CPU está utilizando activamente.',
+        hint: 'Memoria temporal de alta velocidad.',
+      },
+      {
+        question: 'Dispositivo de almacenamiento muy rápido sin partes móviles:',
+        image: '/assets/img/Juego 6/ssd.svg',
+        options: [
+          { text: 'Disco duro tradicional', correct: false },
+          { text: 'Unidad de estado sólido (SSD)', correct: true },
+          { text: 'Unidad óptica', correct: false },
+        ],
+        explanation:
+          'Las unidades de estado sólido (SSD) usan memoria flash para almacenar datos, lo que las hace mucho más rápidas que los discos duros tradicionales y sin partes móviles.',
+        hint: 'Más rápido que un disco duro tradicional.',
+      },
+      {
+        question: 'Memoria ultrarrápida integrada en el procesador:',
+        image: '/assets/img/Juego 6/cache.svg',
+        options: [
+          { text: 'Memoria RAM', correct: false },
+          { text: 'Memoria virtual', correct: false },
+          { text: 'Memoria caché', correct: true },
+        ],
+        explanation:
+          'La memoria caché es una memoria ultrarrápida integrada en el procesador que almacena copias de datos de uso frecuente para acelerar el acceso del CPU.',
+        hint: 'Memoria ultrarrápida cerca del procesador.',
+      },
+    ],
+  },
+  {
+    title: 'Nivel 4: Dispositivos de Entrada y Salida',
+    questions: [
+      {
+        question: 'Permite introducir texto y comandos:',
+        image: '/assets/img/Juego 3/Teclado-Juego3.png',
+        options: [
+          { text: 'Mouse', correct: false },
+          { text: 'Teclado', correct: true },
+          { text: 'Monitor', correct: false },
+        ],
+        explanation:
+          'El teclado es un dispositivo de entrada que permite introducir texto, números y comandos al computador mediante la presión de teclas.',
+        hint: 'Con este escribes texto.',
+      },
+      {
+        question: 'Dispositivo de entrada para apuntar y seleccionar:',
+        image: '/assets/img/Juego 3/Mouse-Juego3.png',
+        options: [
+          { text: 'Mouse', correct: true },
+          { text: 'Impresora', correct: false },
+          { text: 'Escáner', correct: false },
+        ],
+        explanation:
+          'El mouse (ratón) es un dispositivo de entrada que controla el cursor en la pantalla y permite seleccionar, arrastrar y hacer clic en elementos.',
+        hint: 'Con este apuntas y haces clic.',
+      },
+      {
+        question: 'Convierte documentos físicos en digitales:',
+        image: '/assets/img/Juego 6/scanner.svg',
+        options: [
+          { text: 'Impresora', correct: false },
+          { text: 'Monitor', correct: false },
+          { text: 'Escáner', correct: true },
+        ],
+        explanation:
+          'El escáner es un dispositivo de entrada que convierte documentos físicos, fotografías o imágenes en formato digital que puede ser procesado por el computador.',
+        hint: 'Convierte papel a digital.',
+      },
+    ],
+  },
+  {
+    title: 'Nivel 5: Componentes Avanzados',
+    questions: [
+      {
+        question: 'Mantiene el computador a temperatura adecuada:',
+        image: '/assets/img/Juego 4/disipador-Juego4.png',
+        options: [
+          { text: 'Sistema de refrigeración', correct: true },
+          { text: 'Fuente de poder', correct: false },
+          { text: 'Disco duro', correct: false },
+        ],
+        explanation:
+          'El sistema de refrigeración (ventiladores, disipadores de calor y refrigeración líquida) mantiene los componentes a temperaturas seguras para su funcionamiento.',
+        hint: 'Mantiene todo fresco y funcionando.',
+      },
+      {
+        question: 'Permite la conexión a redes e internet:',
+        image: '/assets/img/Juego 4/tarjeta-red-Juego4.png',
+        options: [
+          { text: 'Tarjeta de sonido', correct: false },
+          { text: 'Tarjeta de red', correct: true },
+          { text: 'Tarjeta gráfica', correct: false },
+        ],
+        explanation:
+          'La tarjeta de red (NIC) permite la conexión del computador a redes locales e internet, ya sea por cable (Ethernet) o de forma inalámbrica (Wi-Fi).',
+        hint: 'Te conecta a internet.',
+      },
+      {
+        question: 'Produce audio y permite conectar parlantes:',
+        image: '/assets/img/Juego 6/soundcard.svg',
+        options: [
+          { text: 'Tarjeta de sonido', correct: true },
+          { text: 'Tarjeta de video', correct: false },
+          { text: 'Procesador', correct: false },
+        ],
+        explanation:
+          'La tarjeta de sonido procesa audio y permite conectar parlantes, audífonos y micrófonos al computador, convirtiendo señales digitales en analógicas y viceversa.',
+        hint: 'Para escuchar música y sonidos.',
+      },
+    ],
+  },
+];
+
 @Component({
   selector: 'app-game6',
-  imports: [CommonModule],
+  imports: [GameHeaderComponent],
   templateUrl: './game6.component.html',
-  styleUrl: './game6.component.css'
+  styleUrl: './game6.component.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Game6Component implements OnInit, AfterViewInit, OnDestroy {
-  constructor(
-    private gameStatus: GameStatusService,
-    private gameData: GameDataService,
-    private router: Router
-  ) { }
+export class Game6Component implements OnInit, OnDestroy {
+  readonly gameStatus = inject(GameStatusService);
+  private readonly router = inject(Router);
+  private readonly audio = inject(AudioService);
+  private readonly destroyRef = inject(DestroyRef);
 
-  currentLevel = 0;
-  currentQuestion = 0;
-  localScore = 0;
-  answered = false;
-  selectedOption = -1;
-  showExplanation = false;
-  levelCompleted = false;
-  feedbackMessage = '¡Selecciona la respuesta correcta!';
-  feedbackClass = '';
-  sonidoActivo = true;
+  readonly timer = new CountdownTimer(ROUND_SECONDS, () => void this.handleTimeOver());
 
-  tiempo = 0;
-  intervaloTiempo: any;
-  private observer!: IntersectionObserver;
-  private audio = new Audio('/assets/Audios/Nivel 2-3.mp3');
+  readonly levels = LEVELS;
 
-  get nickname() {
-    return this.gameStatus.nickname();
-  }
+  readonly currentLevel = signal(0);
+  readonly currentQuestion = signal(0);
+  readonly localScore = signal(0);
+  readonly answered = signal(false);
+  readonly selectedOption = signal(-1);
+  readonly showExplanation = signal(false);
+  readonly feedbackMessage = signal('¡Selecciona la respuesta correcta!');
+  readonly feedbackClass = signal('');
 
-  get score() {
-    return this.gameStatus.score();
-  }
+  /** Bloquea la interaccion mientras se resuelve el fin de nivel o de juego. */
+  private finishing = false;
 
-  get lives() {
-    return this.gameStatus.lives();
-  }
+  /**
+   * Puntos que este componente lleva sumados al acumulado global.
+   *
+   * Hace falta porque game6 puntua nivel interno a nivel interno, no de una vez
+   * al final: al reintectar desde cero hay que devolver justo esa cantidad y no
+   * tocar lo que el jugador gano en los niveles anteriores de junior.
+   */
+  private contributed = 0;
 
-  get livesArray() {
-    return Array(this.lives).fill(0);
-  }
+  readonly currentLevelData = computed(() => this.levels[this.currentLevel()]);
 
-  get difficult() {
-    return this.gameStatus.difficult();
-  }
+  /**
+   * Pregunta actual.
+   *
+   * Devuelve undefined cuando el indice se sale del nivel. La plantilla ya no
+   * lo lee en ese estado: antes el bloque de explicacion estaba FUERA del
+   * *ngIf="!levelCompleted", asi que al pasar la ultima pregunta seguia
+   * evaluando `currentQuestionData.explanation` con currentQuestion apuntando
+   * mas alla del array y Angular lanzaba
+   * "Cannot read properties of undefined (reading 'explanation')".
+   */
+  readonly currentQuestionData = computed<QuizQuestion | undefined>(
+    () => this.currentLevelData()?.questions[this.currentQuestion()]
+  );
 
-  // === tus niveles ===
-  levels: QuizLevel[] = [
-    {
-      title: "Nivel 1: Componentes Básicos",
-      questions: [
-        {
-          question: "Es como el cerebro del computador:",
-          image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Y3B1JTIwY2hpcHxlbnwwfHwwfHx8MA%3D%3D",
-          options: [
-            { text: "CPU", correct: true },
-            { text: "Disco duro", correct: false },
-            { text: "Fuente de poder", correct: false }
-          ],
-          explanation: "La CPU (Unidad Central de Procesamiento) es conocida como el 'cerebro' del computador porque procesa todas las instrucciones y cálculos necesarios para que el sistema funcione."
-        },
-        {
-          question: "Almacena información permanentemente:",
-          image: "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8aGFyZCUyMGRyaXZlfGVufDB8fDB8fHww",
-          options: [
-            { text: "Memoria RAM", correct: false },
-            { text: "Disco duro", correct: true },
-            { text: "Tarjeta gráfica", correct: false }
-          ],
-          explanation: "El disco duro es el dispositivo de almacenamiento permanente que guarda todos los datos, programas y el sistema operativo incluso cuando el computador está apagado."
-        },
-        {
-          question: "Muestra la información visual:",
-          image: "https://www.lg.com/content/dam/channel/wcms/co/images/monitores/24mp400-b_awp_escb_co_c/gallery/DZ-1.jpg",
-          options: [
-            { text: "Monitor", correct: true },
-            { text: "Teclado", correct: false },
-            { text: "CPU", correct: false }
-          ],
-          explanation: "El monitor es el dispositivo de salida que muestra la información visual generada por la computadora a través de la tarjeta gráfica."
-        }
-      ]
-    },
-    {
-      title: "Nivel 2: Componentes Internos",
-      questions: [
-        {
-          question: "Procesa los gráficos y videos:",
-          image: "https://images.unsplash.com/photo-1591405351990-4726e331f141?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Z3JhcGhpY3MlMjBjYXJkfGVufDB8fDB8fHww",
-          options: [
-            { text: "Tarjeta gráfica", correct: true },
-            { text: "Fuente de poder", correct: false },
-            { text: "Disco duro", correct: false }
-          ],
-          explanation: "La tarjeta gráfica o GPU es un componente especializado en el procesamiento de gráficos y videos, aliviando la carga de trabajo de la CPU."
-        },
-        {
-          question: "Proporciona energía a todos los componentes:",
-          image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRr3l1YhmPheDdXtSY4NTkntErdvJWvobK4pw&s",
-          options: [
-            { text: "Placa base", correct: false },
-            { text: "Fuente de poder", correct: true },
-            { text: "Procesador", correct: false }
-          ],
-          explanation: "La fuente de poder convierte la corriente alterna de la pared en corriente continua a diferentes voltajes, proporcionando energía estable a todos los componentes del computador."
-        },
-        {
-          question: "Conecta todos los componentes internos:",
-          image: "https://images.unsplash.com/photo-1531594896955-305cf81269f1?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8bW90aGVyYm9hcmR8ZW58MHx8MHx8fDA%3D",
-          options: [
-            { text: "Placa base", correct: true },
-            { text: "Memoria RAM", correct: false },
-            { text: "Ventilador", correct: false }
-          ],
-          explanation: "La placa base (motherboard) es la plataforma central que interconecta todos los componentes del computador, permitiendo que se comuniquen entre sí."
-        }
-      ]
-    },
-    {
-      title: "Nivel 3: Memoria y Almacenamiento",
-      questions: [
-        {
-          question: "Memoria temporal de acceso rápido:",
-          image: "https://w7.pngwing.com/pngs/929/572/png-transparent-ram-computer-memory-flash-memory-rom-computer-computer-ram-electronic-device.png",
-          options: [
-            { text: "Memoria RAM", correct: true },
-            { text: "Disco duro", correct: false },
-            { text: "Memoria caché", correct: false }
-          ],
-          explanation: "La memoria RAM (Random Access Memory) es una memoria volátil de acceso rápido que almacena temporalmente los datos que la CPU está utilizando activamente."
-        },
-        {
-          question: "Dispositivo de almacenamiento muy rápido sin partes móviles:",
-          image: "https://png.pngtree.com/png-vector/20230328/ourmid/pngtree-ssd-solid-drive-computer-storage-vector-png-image_6672878.png",
-          options: [
-            { text: "Disco duro tradicional", correct: false },
-            { text: "Unidad de estado sólido (SSD)", correct: true },
-            { text: "Unidad óptica", correct: false }
-          ],
-          explanation: "Las unidades de estado sólido (SSD) usan memoria flash para almacenar datos, lo que las hace mucho más rápidas que los discos duros tradicionales y sin partes móviles."
-        },
-        {
-          question: "Memoria ultrarrápida integrada en el procesador:",
-          image: "https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Y2FjaGUlMjBtZW1vcnl8ZW58MHx8MHx8fDA%3D",
-          options: [
-            { text: "Memoria RAM", correct: false },
-            { text: "Memoria virtual", correct: false },
-            { text: "Memoria caché", correct: true }
-          ],
-          explanation: "La memoria caché es una memoria ultrarrápida integrada en el procesador que almacena copias de datos de uso frecuente para acelerar el acceso del CPU."
-        }
-      ]
-    },
-    {
-      title: "Nivel 4: Dispositivos de Entrada/Salida",
-      questions: [
-        {
-          question: "Permite introducir texto y comandos:",
-          image: "https://images.unsplash.com/photo-1541140532154-b024d705b90a?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8a2V5Ym9hcmR8ZW58MHx8MHx8fDA%3D",
-          options: [
-            { text: "Mouse", correct: false },
-            { text: "Teclado", correct: true },
-            { text: "Monitor", correct: false }
-          ],
-          explanation: "El teclado es un dispositivo de entrada que permite introducir texto, números y comandos al computador mediante la presión de teclas."
-        },
-        {
-          question: "Dispositivo de entrada para apuntar y seleccionar:",
-          image: "https://images.unsplash.com/photo-1527814050087-3793815479db?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8bW91c2V8ZW58MHx8MHx8fDA%3D",
-          options: [
-            { text: "Mouse", correct: true },
-            { text: "Impresora", correct: false },
-            { text: "Escáner", correct: false }
-          ],
-          explanation: "El mouse (ratón) es un dispositivo de entrada que controla el cursor en la pantalla y permite seleccionar, arrastrar y hacer clic en elementos."
-        },
-        {
-          question: "Convierte documentos físicos en digitales:",
-          image: "https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8c2Nhbm5lcnxlbnwwfHwwfHx8MA%3D%3D",
-          options: [
-            { text: "Impresora", correct: false },
-            { text: "Monitor", correct: false },
-            { text: "Escáner", correct: true }
-          ],
-          explanation: "El escáner es un dispositivo de entrada que convierte documentos físicos, fotografías o imágenes en formato digital que puede ser procesado por el computador."
-        }
-      ]
-    },
-    {
-      title: "Nivel 5: Componentes Avanzados",
-      questions: [
-        {
-          question: "Mantiene el computador a temperatura adecuada:",
-          image: "https://i.blogs.es/46d660/81l-qmtggkl._ac_sl1500_/450_1000.webp",
-          options: [
-            { text: "Sistema de refrigeración", correct: true },
-            { text: "Fuente de poder", correct: false },
-            { text: "Disco duro", correct: false }
-          ],
-          explanation: "El sistema de refrigeración (que puede incluir ventiladores, disipadores de calor y refrigeración líquida) mantiene los componentes a temperaturas seguras para su funcionamiento."
-        },
-        {
-          question: "Permite la conexión a redes e internet:",
-          image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRj9AoHDZZP5xgTF1I6Bkctu3e2a-VAW5qRdw&s",
-          options: [
-            { text: "Tarjeta de sonido", correct: false },
-            { text: "Tarjeta de red", correct: true },
-            { text: "Tarjeta gráfica", correct: false }
-          ],
-          explanation: "La tarjeta de red (NIC) permite la conexión del computador a redes locales e internet, ya sea por cable (Ethernet) o de forma inalámbrica (Wi-Fi)."
-        },
-        {
-          question: "Produce audio y permite conectar parlantes:",
-          image: "https://partesdelacomputadora.org/wp-content/uploads/2019/07/Tarjetas-de-sonido-semiprofesionales.jpg",
-          options: [
-            { text: "Tarjeta de sonido", correct: true },
-            { text: "Tarjeta de video", correct: false },
-            { text: "Procesador", correct: false }
-          ],
-          explanation: "La tarjeta de sonido procesa audio y permite conectar parlantes, audífonos y micrófonos al computador, convirtiendo señales digitales en analógicas y viceversa."
-        }
-      ]
-    }
-  ];
+  readonly progressPercentage = computed(() => {
+    const total = this.currentLevelData()?.questions.length ?? 1;
+    return ((this.currentQuestion() + 1) / total) * 100;
+  });
 
-  hints: string[] = [
-    "Pista: Este componente procesa todas las instrucciones del computador.",
-    "Pista: Guarda tus archivos y programas permanentemente.",
-    "Pista: Donde ves la información visual.",
-    "Pista: Esencial para juegos y diseño gráfico.",
-    "Pista: Sin esto, el computador no encendería.",
-    "Pista: Todo se conecta a esta placa.",
-    "Pista: Memoria temporal de alta velocidad.",
-    "Pista: Más rápido que un disco duro tradicional.",
-    "Pista: Memoria ultrarrápida cerca del procesador.",
-    "Pista: Con este escribes texto.",
-    "Pista: Con este apuntas y haces clic.",
-    "Pista: Convierte papel a digital.",
-    "Pista: Mantiene todo fresco y funcionando.",
-    "Pista: Te conecta a internet.",
-    "Pista: Para escuchar música y sonidos."
-  ];
+  readonly levelLabel = computed(
+    () => `Nivel ${this.currentLevel() + 1} de ${this.levels.length}`
+  );
 
+  readonly isLastLevel = computed(() => this.currentLevel() === this.levels.length - 1);
 
-  // === ciclo de vida ===
   ngOnInit(): void {
+    this.audio.playTrack('/assets/Audios/Nivel 2-3.mp3', { destroyRef: this.destroyRef });
     this.loadLevel(0);
-    this.startTimer();
-    this.audio.load();
-  }
-
-  ngAfterViewInit(): void {
-    this.observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) this.audio.play();
-        else this.audio.pause();
-      });
-    }, { threshold: 0.5 });
-    this.observer.observe(document.querySelector('app-game6') as Element);
   }
 
   ngOnDestroy(): void {
-    this.audio.pause();
-    clearInterval(this.intervaloTiempo);
-    if (this.observer) this.observer.disconnect();
+    this.timer.stop();
+    closeGameDialogs();
   }
 
-  startTimer(): void {
-    this.tiempo = 120;
-    clearInterval(this.intervaloTiempo);
+  // ---------- Carga ----------
 
-    this.intervaloTiempo = setInterval(() => {
-      this.tiempo--;
-
-      if (this.tiempo <= 0) {
-        clearInterval(this.intervaloTiempo);
-        this.handleTimeOver();
-      }
-    }, 1000);
+  private loadLevel(index: number): void {
+    this.currentLevel.set(index);
+    this.currentQuestion.set(0);
+    this.resetQuestionState();
+    this.timer.start(ROUND_SECONDS);
   }
 
-handleTimeOver(): void {
-  this.gameStatus.loseLife();
-
-  if (this.lives > 0) {
-    Swal.fire({
-      title: '⏰ ¡Se acabó el tiempo!',
-      text: `Perdiste una vida. Te quedan ${this.lives} ${this.lives === 1 ? 'vida' : 'vidas'}.`,
-      icon: 'warning',
-      confirmButtonText: 'Continuar',
-      confirmButtonColor: '#3085d6',
-      background: '#fff5f5'
-    }).then(() => {
-      this.loadQuestion();
-      this.resetTimer();
-    });
-  } else {
-    Swal.fire({
-      title: '💀 ¡Te quedaste sin vidas!',
-      text: '¿Quieres intentarlo de nuevo?',
-      icon: 'error',
-      showCancelButton: true,
-      confirmButtonText: 'Reintentar',
-      cancelButtonText: 'Salir',
-      confirmButtonColor: '#d33',
-      background: '#fff5f5'
-    }).then(result => {
-      if (result.isConfirmed) {
-        this.loadLevel(0);
-        this.router.navigate(['/junior/level-1']);
-        this.gameStatus.setScore(0);
-      } else {
-        this.router.navigate(['/']);
-      }
-    });
-  }
-}
-
-
-  resetTimer(): void {
-    clearInterval(this.intervaloTiempo);
-    this.startTimer();
+  private resetQuestionState(): void {
+    this.answered.set(false);
+    this.selectedOption.set(-1);
+    this.showExplanation.set(false);
+    this.feedbackMessage.set('¡Selecciona la respuesta correcta!');
+    this.feedbackClass.set('');
   }
 
-  get currentLevelData(): QuizLevel {
-    return this.levels[this.currentLevel];
-  }
-
-  get currentQuestionData(): QuizQuestion {
-    return this.currentLevelData.questions[this.currentQuestion];
-  }
-
-  get progressPercentage(): number {
-    return ((this.currentQuestion + 1) / this.currentLevelData.questions.length) * 100;
-  }
-
-  loadLevel(index: number): void {
-    this.currentLevel = index;
-    this.currentQuestion = 0;
-    this.levelCompleted = false;
-    this.localScore = 0;
-    this.loadQuestion();
-    this.resetTimer();
-  }
-
-  loadQuestion(): void {
-    this.answered = false;
-    this.selectedOption = -1;
-    this.showExplanation = false;
-    this.feedbackMessage = '¡Selecciona la respuesta correcta!';
-    this.feedbackClass = '';
-  }
+  // ---------- Interaccion ----------
 
   checkAnswer(optionIndex: number, correct: boolean): void {
-    if (this.answered || this.lives <= 0) return;
-    this.answered = true;
-    this.selectedOption = optionIndex;
-    this.showExplanation = true;
+    if (this.answered() || this.finishing || this.gameStatus.isGameOver()) {
+      return;
+    }
+
+    this.answered.set(true);
+    this.selectedOption.set(optionIndex);
+    this.showExplanation.set(true);
 
     if (correct) {
-      this.feedbackMessage = '✅ ¡Correcto!';
-      this.feedbackClass = 'correct';
-      this.localScore += 10;
-    } else {
-      this.feedbackMessage = '❌ Incorrecto.';
-      this.feedbackClass = 'incorrect';
-      this.gameStatus.loseLife();
-      if (this.lives <= 0) {
-        this.gameOverAlert();
-      }
+      this.feedbackMessage.set('✅ ¡Correcto!');
+      this.feedbackClass.set('correct');
+      this.localScore.update(value => value + POINTS_PER_CORRECT);
+      return;
+    }
+
+    this.feedbackMessage.set('❌ Incorrecto.');
+    this.feedbackClass.set('incorrect');
+    this.gameStatus.loseLife();
+
+    if (this.gameStatus.isGameOver()) {
+      void this.handleGameOver();
     }
   }
 
-  nextQuestion(): void {
-    this.currentQuestion++;
-    if (this.currentQuestion >= this.currentLevelData.questions.length) {
-      this.showLevelCompleted();
-    } else {
-      this.loadQuestion();
+  async nextQuestion(): Promise<void> {
+    if (this.finishing) {
+      return;
     }
+
+    const total = this.currentLevelData().questions.length;
+
+    if (this.currentQuestion() + 1 >= total) {
+      await this.completeLevel();
+      return;
+    }
+
+    this.currentQuestion.update(value => value + 1);
+    this.resetQuestionState();
   }
 
-  async showLevelCompleted(): Promise<void> {
-    this.levelCompleted = true;
-    clearInterval(this.intervaloTiempo);
-    this.gameStatus.addScore(this.localScore);
+  /**
+   * Letra de la opcion: A, B, C...
+   *
+   * En la plantilla estaba como `['A', 'B', 'C'][i] ?? '\u2022'`. TypeScript tipa el
+   * acceso a un array literal como `string` (no `string | undefined`), asi que
+   * el `??` era codigo inalcanzable y el compilador lo avisaba en cada build:
+   * "NG8102: The left side of this nullish coalescing operation does not
+   * include 'null' or 'undefined'". Calcularlo aqui deja de fijar el numero de
+   * opciones a tres.
+   */
+  optionKey(index: number): string {
+    return String.fromCharCode(65 + index);
+  }
 
-    const isLast = this.currentLevel === this.levels.length - 1;
-    const title = isLast ? '🎉 ¡Juego completado!' : '🏅 ¡Nivel superado!';
-    const text = isLast
-      ? `Terminaste todos los niveles con ${this.gameStatus.score()} puntos totales.`
-      : `Has completado el ${this.currentLevelData.title} con ${this.localScore} puntos.`;
+  async showHint(): Promise<void> {
+    const question = this.currentQuestionData();
 
-    await Swal.fire({
-      title,
-      text,
-      icon: isLast ? 'success' : 'info',
-      confirmButtonText: isLast ? 'Finalizar' : 'Siguiente nivel',
-      confirmButtonColor: '#28a745',
-      background: '#f5faff',
-      showClass: { popup: 'animate__animated animate__fadeInDown' },
-      hideClass: { popup: 'animate__animated animate__fadeOutUp' }
+    if (this.answered() || !question) {
+      return;
+    }
+
+    /*
+      Antes las pistas vivian en un array plano `hints[]` aparte y se indexaban
+      sumando las longitudes de los niveles anteriores. Cualquier pregunta que
+      se anadiera o reordenara desalineaba TODAS las pistas siguientes. Ahora
+      cada pregunta lleva la suya.
+    */
+    await gameDialog(
+      {
+        title: '💡 Pista',
+        text: question.hint,
+        icon: 'info',
+        confirmButtonText: 'Entendido',
+      },
+      this.timer
+    );
+  }
+
+  // ---------- Fin de nivel y de juego ----------
+
+  /**
+   * Cierra el nivel y pasa al siguiente (o termina el juego).
+   *
+   * Antes habia dos caminos solapados: showLevelCompleted() ponia
+   * levelCompleted = true, sumaba el puntaje, mostraba un modal y llamaba a
+   * nextLevel(); y ADEMAS la plantilla pintaba una .completed-screen con un
+   * boton "Siguiente Nivel" que volvia a llamar a nextLevel(). Si el jugador
+   * alcanzaba a pulsarlo, avanzaba dos niveles de golpe. En el ultimo nivel se
+   * encadenaban dos modales de felicitacion seguidos.
+   */
+  private async completeLevel(): Promise<void> {
+    this.finishing = true;
+    this.timer.stop();
+
+    const timeBonus = this.timer.remaining();
+    const earned = this.localScore() + timeBonus;
+    this.gameStatus.addScore(earned);
+    this.contributed += earned;
+    this.localScore.set(0);
+
+    if (this.isLastLevel()) {
+      await gameDialog({
+        title: '🏆 ¡Juego completado!',
+        html: `Terminaste los ${this.levels.length} niveles con <b>${this.gameStatus.score()}</b> puntos.`,
+        icon: 'success',
+        confirmButtonText: 'Ver resultados',
+        confirmButtonColor: '#16a34a',
+      });
+
+      /*
+        Aqui estaba el POST del puntaje. Se movio a la pantalla de resultados,
+        que lo envia una sola vez con reintento y aviso de error.
+      */
+      void this.router.navigate(['/score']);
+      return;
+    }
+
+    await gameDialog({
+      title: '🏅 ¡Nivel superado!',
+      html: `Completaste <b>${this.currentLevelData().title}</b> y sumaste <b>${earned}</b> puntos.`,
+      icon: 'success',
+      confirmButtonText: 'Siguiente nivel',
+      confirmButtonColor: '#16a34a',
     });
 
-    if (isLast) {
-      this.handleGameCompleted();
-    } else {
-      this.nextLevel();
+    this.finishing = false;
+    this.loadLevel(this.currentLevel() + 1);
+  }
+
+  private async handleTimeOver(): Promise<void> {
+    if (this.finishing) {
+      return;
     }
+
+    this.gameStatus.loseLife();
+
+    if (this.gameStatus.isGameOver()) {
+      await this.handleGameOver();
+      return;
+    }
+
+    await gameDialog({
+      title: '⏰ ¡Se acabó el tiempo!',
+      text: `Perdiste una vida. Te quedan ${this.gameStatus.lives()} ${
+        this.gameStatus.lives() === 1 ? 'vida' : 'vidas'
+      }.`,
+      icon: 'warning',
+    });
+
+    /*
+      Aqui habia un resetQuestionState() que era un exploit de puntos: dejaba
+      `answered` en false SIN avanzar de pregunta, asi que una pregunta ya
+      respondida y ya puntuada se podia volver a contestar y sumaba otros
+      POINTS_PER_CORRECT. Bastaba con dejar correr el reloj para farmear la
+      misma pregunta. Al no tocar el estado, el guard de checkAnswer() sigue en
+      pie y el quiz continua donde estaba, igual que en el nivel 2 de junior.
+    */
+    this.timer.start(ROUND_SECONDS);
   }
 
-  handleGameCompleted(): void {
-    const payload: PartialData = {
-      difficult: this.difficult,
-      nickname: this.nickname,
-      score: this.score
-    };
-    this.setScore(payload);
-    Swal.fire({
-      title: '🏆 ¡Felicidades!',
-      text: 'Has completado todos los niveles del juego.',
-      icon: 'success',
-      confirmButtonText: 'Volver al inicio'
-    }).then(() => this.router.navigate(['/score']));
-  }
+  private async handleGameOver(): Promise<void> {
+    this.finishing = true;
+    this.timer.stop();
 
-  gameOverAlert(): void {
-    clearInterval(this.intervaloTiempo);
-    Swal.fire({
+    const result = await gameDialog({
       title: '💀 Te quedaste sin vidas',
-      text: '¿Quieres intentarlo de nuevo?',
+      text: '¿Quieres intentarlo de nuevo desde el primer nivel?',
       icon: 'error',
       showCancelButton: true,
       confirmButtonText: 'Reintentar',
       cancelButtonText: 'Salir',
-      confirmButtonColor: '#d33',
-      background: '#fff5f5'
-    }).then(result => {
-      if (result.isConfirmed) {
-        this.loadLevel(0);
-        this.router.navigate(['/junior/level-1']);
-        this.gameStatus.setScore(0);
-      } else {
-        this.gameStatus.setScore(0);
-        this.router.navigate(['/']);
-      }
+      confirmButtonColor: '#dc2626',
     });
-  }
 
-  nextLevel(): void {
-    if (this.currentLevel < this.levels.length - 1) {
-      this.loadLevel(this.currentLevel + 1);
+    if (result.isConfirmed) {
+      /*
+        Antes: restartRun(), que pone el puntaje GLOBAL a cero. Este es el nivel
+        3 de junior, asi que reintentarlo borraba lo ganado en los niveles 1 y 2.
+
+        Pero tampoco basta con resetLives(): a diferencia de los demas juegos,
+        este suma al acumulado en cada uno de sus cinco niveles internos
+        (completeLevel -> addScore), asi que al reintentar desde el primero hay
+        que descontar exactamente lo que este componente ya habia aportado. Para
+        eso se lleva la cuenta en `contributed`.
+      */
+      this.gameStatus.setScore(Math.max(0, this.gameStatus.score() - this.contributed));
+      this.contributed = 0;
+      this.gameStatus.resetLives();
+      this.localScore.set(0);
+      this.finishing = false;
+      this.loadLevel(0);
     } else {
-      this.handleGameCompleted();
+      this.gameStatus.resetAll();
+      void this.router.navigate(['/home']);
     }
-  }
-
-  setScore(data: PartialData): void {
-    this.gameData.setData(data).subscribe({
-      next: res => console.log('✅ Datos enviados', res),
-      error: err => console.error('❌ Error al enviar datos', err)
-    });
-  }
-
-  toggleAudio(): void {
-    if (this.audio.paused) {
-      this.audio.play().catch(() => { });
-      this.sonidoActivo = true;
-    } else {
-      this.audio.pause();
-      this.sonidoActivo = false;
-    }
-  }
-
-  showHint(): void {
-    if (this.answered) return;
-
-    const globalQuestionIndex =
-      this.levels.slice(0, this.currentLevel).reduce((sum, lvl) => sum + lvl.questions.length, 0) +
-      this.currentQuestion;
-
-    const hintText = this.hints[globalQuestionIndex] || '💡 No hay pista disponible para esta pregunta.';
-
-    Swal.fire({
-      title: '💡 Pista',
-      text: hintText,
-      icon: 'info',
-      confirmButtonText: 'Entendido',
-      confirmButtonColor: '#3085d6',
-      background: '#f5faff'
-    });
-  }
-
-
-  getOptionIcon(index: number): string {
-    const icons = ['fa-microchip', 'fa-hdd', 'fa-plug'];
-    return icons[index] || 'fa-circle';
   }
 }
