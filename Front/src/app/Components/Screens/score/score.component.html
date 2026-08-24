@@ -1,10 +1,15 @@
 <div class="on-dark flex min-h-screen flex-col items-center gap-6
             bg-[url('/assets/img/backgrounds/resultados.jpg')] bg-cover bg-center px-4 py-8">
 
-  <h1 class="m-0 text-center text-[clamp(2rem,6vw,3.25rem)] text-amber-400
-             [text-shadow:0_3px_12px_rgb(2_6_23/0.6)]">
-    🏆 Resultados
-  </h1>
+  <div class="flex w-full max-w-[75rem] flex-wrap items-center justify-between gap-4">
+    <h1 class="m-0 text-[clamp(2rem,6vw,3.25rem)] text-amber-400
+               [text-shadow:0_3px_12px_rgb(2_6_23/0.6)]">
+      🏆 Resultados
+    </h1>
+    <!-- Variante compacta: esta es la pantalla que mas depende de la API, asi
+         que si algo va mal conviene verlo sin tener que deducirlo del error. -->
+    <app-service-status-badge variant="nav" />
+  </div>
 
   <div class="flex w-full max-w-[75rem] flex-wrap items-start gap-6">
 

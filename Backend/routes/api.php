@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\HealthController;
 use App\Http\Controllers\ScoreController;
 use Illuminate\Support\Facades\Route;
 
@@ -12,6 +13,16 @@ use Illuminate\Support\Facades\Route;
 | Solo index y store: el juego no borra ni edita puntajes.
 |
 */
+
+/*
+ * Estado del servicio. Publico y con un limite mas holgado que el resto: el
+ * cliente lo consulta al arrancar, al volver a la pestana, al recuperar la red
+ * y cada 4 minutos para que el plan gratuito no lo suspenda mientras se usa.
+ * Con el throttle general (60/min) varias pestanas abiertas se lo comerian.
+ */
+Route::get('health', HealthController::class)
+    ->middleware('throttle:180,1')
+    ->name('health');
 
 Route::get('score', [ScoreController::class, 'index'])->name('score.index');
 

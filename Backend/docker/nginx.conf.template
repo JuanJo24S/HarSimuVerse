@@ -23,6 +23,13 @@ http {
 
     client_max_body_size 20M;
 
+    # Necesario para proxiar WebSocket: `Connection` tiene que ser "upgrade"
+    # solo cuando el cliente lo pide, y "close" en el resto de peticiones.
+    map $http_upgrade $connection_upgrade {
+        default upgrade;
+        ''      close;
+    }
+
     gzip on;
     gzip_vary on;
     gzip_min_length 1024;
@@ -49,6 +56,40 @@ http {
         location = /up {
             access_log off;
             try_files $uri /index.php?$query_string;
+        }
+
+        #
+        # Canal en vivo del estado -> servidor Reverb.
+        #
+        # Va detras de este mismo nginx y no en un puerto propio porque Render
+        # publica UN solo puerto por servicio. Reverb escucha en el 8080 interno
+        # y aqui se expone como /ws, asi que el front usa el mismo dominio (y el
+        # mismo certificado) que la API.
+        #
+        # La barra final del proxy_pass es la que quita el prefijo /ws: el
+        # cliente pide /ws/app/<key> y a Reverb le llega /app/<key>, que es la
+        # ruta que entiende el protocolo Pusher.
+        #
+        location /ws/ {
+            proxy_pass http://127.0.0.1:${REVERB_SERVER_PORT}/;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+
+            # El socket esta callado entre latidos (25s). Sin subir estos
+            # timeouts, nginx cortaria la conexion cada 60s por inactividad y el
+            # cliente reconectaria en bucle sin motivo.
+            proxy_read_timeout 3600s;
+            proxy_send_timeout 3600s;
+
+            # Un buffer intermedio retrasaria el latido: se entrega en cuanto llega.
+            proxy_buffering off;
+
+            access_log off;
         }
 
         error_page 404 /index.php;

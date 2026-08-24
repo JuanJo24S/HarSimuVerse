@@ -194,6 +194,17 @@
   }
 }
 
+@layer components {
+  /* Punto latiendo del distintivo de estado (comprobando / despertando). */
+  @keyframes hsv-pulse-dot {
+    50% { opacity: 0.35; transform: scale(0.85); }
+  }
+
+  .animate-pulse-dot {
+    animation: hsv-pulse-dot 1.2s ease-in-out infinite;
+  }
+}
+
 /* Respeta la preferencia del sistema de reducir animaciones. */
 @media (prefers-reduced-motion: reduce) {
   *,

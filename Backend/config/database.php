@@ -96,6 +96,24 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => 'prefer',
+
+            /*
+              ESTA es la linea que evita que el endpoint de estado se cuelgue.
+
+              Sin connect_timeout, con la base apagada PDO espera el timeout por
+              defecto del sistema (decenas de segundos). La consecuencia no es
+              solo lentitud: la propia peticion /api/health muere por timeout
+              antes de poder contestar, y entonces el cliente reporta el SERVIDOR
+              como caido cuando lo que esta caido es la BASE. Justo el diagnostico
+              que este sistema existe para dar bien.
+
+              Cinco segundos es de sobra para una base sana en la misma region, y
+              lo bastante corto para que /api/health conteste dentro del tiempo
+              util de una peticion.
+            */
+            'options' => extension_loaded('pdo_pgsql') ? [
+                PDO::ATTR_TIMEOUT => 5,
+            ] : [],
         ],
 
         'sqlsrv' => [

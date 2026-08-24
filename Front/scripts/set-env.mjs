@@ -43,14 +43,34 @@ try {
   process.exit(1);
 }
 
+/*
+  URL del canal en vivo del estado.
+
+  En produccion Reverb va detras del mismo nginx que la API, en /ws, para no
+  tener que exponer un segundo puerto (Render solo publica uno por servicio).
+  Por eso se deriva de la API: mismo host, ws:// o wss:// segun el esquema.
+
+  WS_URL permite fijarla a mano si el socket vive en otro sitio.
+*/
+const wsUrl =
+  process.env.WS_URL?.trim().replace(/\/+$/, '') ??
+  normalized.replace(/^http/, 'ws').replace(/\/api$/, '/ws');
+
+// Clave publica de Reverb: viaja al navegador, solo sirve para suscribirse a
+// canales publicos. El secreto nunca sale del servidor.
+const reverbKey = process.env.REVERB_APP_KEY?.trim() || 'harsimuverse-status';
+
 const contents = `// ARCHIVO GENERADO por scripts/set-env.mjs durante el build.
 // No editar a mano: los cambios se sobreescriben si API_URL esta definida.
 // Para desarrollo se usa environment.development.ts (ver fileReplacements en angular.json).
 export const environment = {
   production: true,
   apiUrl: '${normalized}',
+  wsUrl: '${wsUrl}',
+  reverbKey: '${reverbKey}',
 };
 `;
 
 writeFileSync(target, contents, 'utf8');
 console.log(`[set-env] environment.ts -> apiUrl = ${normalized}`);
+console.log(`[set-env] environment.ts -> wsUrl  = ${wsUrl}`);
