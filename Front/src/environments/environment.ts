@@ -1,9 +1,7 @@
-// ARCHIVO GENERADO por scripts/set-env.mjs durante el build.
-// No editar a mano: los cambios se sobreescriben si API_URL esta definida.
-// Para desarrollo se usa environment.development.ts (ver fileReplacements en angular.json).
+// Entorno de PRODUCCION.
+//
+// Ya no hay apiUrl ni wsUrl: el juego no habla con ningun servidor. Los
+// puntajes viven en localStorage (ver Services/game-data.service.ts).
 export const environment = {
   production: true,
-  apiUrl: 'https://harsimuverse.onrender.com/api',
-  wsUrl: 'wss://harsimuverse.onrender.com/ws',
-  reverbKey: 'harsimuverse-status',
 };

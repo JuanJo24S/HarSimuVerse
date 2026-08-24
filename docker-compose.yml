@@ -1,15 +1,19 @@
 ###############################################################################
 # HarSimuVerse — entorno de desarrollo completo
 #
-#   docker compose up          -> levanta Postgres + API Laravel + Angular
+#   docker compose up                       -> levanta solo el frontend
+#   docker compose --profile backend up      -> ademas Postgres + API + Reverb
 #   docker compose up --build  -> reconstruye las imagenes
 #   docker compose down        -> apaga todo (conserva los datos)
 #   docker compose down -v     -> apaga y BORRA la base de datos
 #
+# El juego ya no usa backend: los puntajes viven en localStorage del navegador.
+# Los servicios de servidor se conservan tras el perfil `backend` por si se
+# retoman, pero no arrancan por defecto.
+#
 # URLs una vez arriba:
 #   Frontend  http://localhost:4300
-#   API       http://localhost:8000/api/score
-#   Health    http://localhost:8000/up
+#   API       http://localhost:8000/api/score   (solo con --profile backend)
 #
 # Los puertos y credenciales se pueden sobreescribir en un archivo .env
 # en esta misma carpeta (ver .env.example).
@@ -30,6 +34,7 @@ services:
   # ---------------------------------------------------------------------------
   db:
     image: postgres:16-alpine
+    profiles: ["backend"]
     container_name: harsimuverse-db
     restart: unless-stopped
     environment:
@@ -62,6 +67,7 @@ services:
       context: ./Backend
       target: dev
     container_name: harsimuverse-backend
+    profiles: ["backend"]
     restart: unless-stopped
     depends_on:
       db:
@@ -139,6 +145,7 @@ services:
       context: ./Backend
       target: dev
     container_name: harsimuverse-reverb
+    profiles: ["backend"]
     restart: unless-stopped
     depends_on:
       backend:
@@ -176,6 +183,7 @@ services:
       context: ./Backend
       target: dev
     container_name: harsimuverse-heartbeat
+    profiles: ["backend"]
     restart: unless-stopped
     depends_on:
       reverb:
@@ -219,17 +227,8 @@ services:
       target: dev
     container_name: harsimuverse-frontend
     restart: unless-stopped
-    depends_on:
-      - backend
     environment:
       FRONTEND_PORT: ${FRONTEND_PORT:-4300}
-      # El navegador corre en el host, por eso la API se referencia por
-      # localhost y no por el nombre del servicio `backend`.
-      API_URL: http://localhost:${BACKEND_PORT:-8000}/api
-      # El navegador corre en el host: el socket se referencia por localhost,
-      # no por el nombre del servicio `reverb`.
-      WS_URL: ws://localhost:${REVERB_PORT:-8081}
-      REVERB_APP_KEY: ${REVERB_APP_KEY:-harsimuverse-status}
       NG_CLI_ANALYTICS: "false"
     ports:
       - "${FRONTEND_PORT:-4300}:4200"

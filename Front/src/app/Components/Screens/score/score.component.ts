@@ -8,11 +8,10 @@ import { Body, Data, PartialData } from '../../../Models/data';
 import { AudioService } from '../../../Services/audio.service';
 import { GameDataService } from '../../../Services/game-data.service';
 import { GameStatusService } from '../../../Services/game-status.service';
-import { ServiceStatusBadgeComponent } from '../../Shared/service-status-badge/service-status-badge.component';
 
 @Component({
   selector: 'app-score',
-  imports: [TitleCasePipe, ServiceStatusBadgeComponent],
+  imports: [TitleCasePipe],
   templateUrl: './score.component.html',
   styleUrl: './score.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

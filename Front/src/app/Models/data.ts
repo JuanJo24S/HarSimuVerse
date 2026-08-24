@@ -1,23 +1,23 @@
-/** Un puntaje tal como lo devuelve la API. */
+/** Un puntaje guardado. */
 export interface Body {
   id: number;
   difficult: string;
   nickname: string;
   score: number;
-  /** ISO 8601. `updated_at` ya no se expone: no lo usa el front. */
+  /** ISO 8601. */
   created_at: string | null;
 }
 
-/** Respuesta de GET /api/score: top 5 por dificultad. */
+/** El ranking completo: top 5 por dificultad, guardado en este navegador. */
 export interface Data {
   kids: Body[];
   junior: Body[];
 }
 
-/** Cuerpo de POST /api/score. */
+/** Lo que se necesita para registrar un puntaje. */
 export type PartialData = Pick<Body, 'difficult' | 'nickname' | 'score'>;
 
-/** Respuesta de POST /api/score. */
+/** Resultado de registrar un puntaje, con el puesto conseguido. */
 export interface StoreScoreResponse {
   mensaje: string;
   score: Body;

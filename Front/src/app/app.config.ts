@@ -1,10 +1,4 @@
-import {
-  ApplicationConfig,
-  inject,
-  provideAppInitializer,
-  provideZoneChangeDetection,
-} from '@angular/core';
-import { provideHttpClient, withFetch } from '@angular/common/http';
+import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
 import {
   provideRouter,
   withComponentInputBinding,
@@ -14,7 +8,6 @@ import {
 import { provideSweetAlert2 } from '@sweetalert2/ngx-sweetalert2';
 
 import { routes } from './app.routes';
-import { ServiceStatusService } from './Services/service-status.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -29,21 +22,7 @@ export const appConfig: ApplicationConfig = {
       // navega a la misma ruta (reintentar el mismo nivel).
       withRouterConfig({ onSameUrlNavigation: 'reload' })
     ),
-    provideHttpClient(withFetch()),
 
-    /*
-      Arranca el cliente de estado una sola vez, al cargar la aplicacion.
-
-      NO devuelve promesa a proposito. Si se esperara aqui a la respuesta, con el
-      servidor dormido la aplicacion no pintaria nada durante el minuto largo que
-      tarda en despertar: justo la pantalla en blanco que este sistema existe
-      para eliminar. Lo que hace falta es que la peticion SALGA cuanto antes
-      —empieza a despertar el servicio— mientras la interfaz se pinta y muestra
-      que esta despertando.
-    */
-    provideAppInitializer(() => {
-      inject(ServiceStatusService).start();
-    }),
     provideSweetAlert2({
       fireOnInit: false,
       dismissOnDestroy: true,
