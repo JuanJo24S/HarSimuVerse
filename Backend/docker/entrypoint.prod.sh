@@ -24,9 +24,53 @@ if [ -z "${APP_KEY:-}" ]; then
     log "AVISO: define APP_KEY en las variables de entorno del servicio."
 fi
 
+###############################################################################
+# Puerto interno de Reverb.
+#
+# nginx escucha en $PORT (lo asigna el PaaS en runtime) y Reverb necesita OTRO
+# puerto solo para el trafico interno, porque nginx le proxia /ws.
+#
+# Si los dos coincidieran, el segundo en arrancar muere con
+# "Failed to listen on tcp://0.0.0.0:PORT: Address in use". Y el fallo es
+# traicionero: nginx sigue sirviendo la API con normalidad, asi que el servicio
+# parece sano y lo unico que no funciona es el canal de estado — precisamente lo
+# que existe para avisar de que algo va mal.
+#
+# Por eso no se confia en que "no suele pasar": si chocan, se desplaza.
+###############################################################################
+export REVERB_SERVER_PORT="${REVERB_SERVER_PORT:-8080}"
+
+if [ "$REVERB_SERVER_PORT" = "$PORT" ] || [ "$REVERB_SERVER_PORT" = "9000" ]; then
+    # 9000 esta ocupado por php-fpm.
+    _old="$REVERB_SERVER_PORT"
+    REVERB_SERVER_PORT=$((PORT + 1))
+    [ "$REVERB_SERVER_PORT" = "9000" ] && REVERB_SERVER_PORT=$((PORT + 2))
+    export REVERB_SERVER_PORT
+    log "AVISO: el puerto interno de Reverb ($_old) chocaba; se usa $REVERB_SERVER_PORT."
+fi
+
+###############################################################################
+# Y aqui la otra mitad, que es facil pasar por alto:
+#
+#   REVERB_SERVER_PORT = donde ESCUCHA Reverb.
+#   REVERB_PORT        = por donde el backend y el latido lo ALCANZAN.
+#
+# Son dos variables distintas y tienen que apuntar al mismo sitio. Si solo se
+# desplaza la primera, la segunda conserva su default (443) y el latido intenta
+# emitir contra 127.0.0.1:443, donde no hay nada:
+#
+#   No se pudo emitir el latido: cURL error 7: Failed to connect to 127.0.0.1:443
+#
+# Como en este despliegue los dos procesos comparten contenedor, el destino
+# siempre es el puerto local en el que Reverb acabo escuchando.
+###############################################################################
+export REVERB_PORT="$REVERB_SERVER_PORT"
+export REVERB_HOST="${REVERB_HOST:-127.0.0.1}"
+export REVERB_SCHEME="${REVERB_SCHEME:-http}"
+
 # Render inyecta el puerto en runtime, asi que nginx se renderiza aqui.
-envsubst '${PORT}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
-log "nginx escuchara en el puerto ${PORT}."
+envsubst '${PORT} ${REVERB_SERVER_PORT}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
+log "nginx escuchara en el puerto ${PORT}; Reverb, en el ${REVERB_SERVER_PORT} interno."
 
 # SQLite solo tiene sentido como fallback: en Render el disco es efimero.
 if [ "${DB_CONNECTION:-sqlite}" = "sqlite" ]; then
@@ -54,6 +98,17 @@ php artisan view:cache   --no-ansi
 php artisan storage:link --no-ansi >/dev/null 2>&1 || true
 
 chown -R www-data:www-data storage bootstrap/cache
+
+###############################################################################
+# Marca de arranque, para el uptime que publica /api/health.
+#
+# Es el dato que responde a la pregunta que importa en un plan gratuito con
+# suspension por inactividad: el servicio ya estaba en marcha, o lo levanto esta
+# visita. Se escribe una vez, al arrancar el contenedor.
+###############################################################################
+mkdir -p storage/app
+date +%s > storage/app/boot_time
+chown www-data:www-data storage/app/boot_time 2>/dev/null || true
 
 log "Backend listo."
 exec "$@"

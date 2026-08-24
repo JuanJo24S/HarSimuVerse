@@ -21,6 +21,23 @@ if [ ! -f vendor/autoload.php ]; then
     composer install --prefer-dist --no-progress --no-interaction
 fi
 
+###############################################################################
+# Servicios secundarios (Reverb, latido): solo necesitan vendor/ y un .env ya
+# escrito. Se saltan todo lo demas.
+#
+# Motivo: los tres contenedores comparten el mismo bind-mount y arrancan a la
+# vez. Si los tres ejecutaran el bloque de configuracion, escribirian .env
+# simultaneamente (grep a un temporal + mv) y se pisarian entre si, dejando el
+# archivo a medias. Tampoco deben migrar tres veces en paralelo.
+#
+# El compose los hace esperar a que el backend este `healthy`, asi que para
+# cuando llegan aqui el .env ya esta completo.
+###############################################################################
+if [ "${SKIP_BOOTSTRAP:-false}" = "true" ]; then
+    log "Servicio secundario: se omite la configuracion (ya la hizo el backend)."
+    exec "$@"
+fi
+
 # 2. Archivo .env: se crea desde el ejemplo la primera vez.
 if [ ! -f .env ]; then
     log ".env no encontrado, copiando desde .env.example..."
@@ -72,6 +89,10 @@ for _var in APP_NAME APP_ENV APP_DEBUG APP_URL \
             LOG_CHANNEL LOG_LEVEL \
             DB_CONNECTION DB_URL DB_HOST DB_PORT DB_DATABASE DB_USERNAME DB_PASSWORD \
             SESSION_DRIVER CACHE_STORE QUEUE_CONNECTION \
+            BROADCAST_CONNECTION \
+            REVERB_APP_ID REVERB_APP_KEY REVERB_APP_SECRET \
+            REVERB_HOST REVERB_PORT REVERB_SCHEME \
+            REVERB_SERVER_HOST REVERB_SERVER_PORT REVERB_ALLOWED_ORIGINS \
             FRONTEND_URL CORS_ALLOWED_ORIGINS; do
     # eval para leer la variable cuyo nombre esta en $_var (sh no tiene ${!x}).
     eval "_val=\${$_var:-}"
@@ -118,6 +139,24 @@ if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
     log "Ejecutando migraciones..."
     php artisan migrate --force --ansi
 fi
+
+###############################################################################
+# 9. Marca de arranque, para el uptime que publica /api/health.
+#
+# PHP-FPM no da un "uptime de proceso" util: cada peticion la atiende un worker
+# distinto y se reciclan cada pm.max_requests. Lo que de verdad importa saber en
+# un plan gratuito es otra cosa: si el CONTENEDOR ya estaba en marcha o lo acaba
+# de levantar esta visita. Por eso el ancla se escribe aqui, una sola vez, al
+# arrancar el contenedor.
+#
+# Se reescribe siempre (sin comprobar si existe) a proposito: el fichero vive en
+# storage/, que va en un volumen, asi que un valor viejo sobreviviria al
+# reinicio y el servicio diria llevar horas encendido recien arrancado.
+###############################################################################
+mkdir -p storage/app
+date +%s > storage/app/boot_time
+chmod 664 storage/app/boot_time 2>/dev/null || true
+log "Marca de arranque escrita."
 
 log "Backend listo en http://localhost:${APP_PORT:-8000}"
 exec "$@"

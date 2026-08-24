@@ -61,9 +61,39 @@ services:
       - key: QUEUE_CONNECTION
         value: sync
 
+      # ---- Canal en vivo del estado (Reverb) ----
+      # Reverb corre dentro del mismo contenedor, en el 8080 interno, y nginx lo
+      # expone en /ws. Render publica un solo puerto por servicio, asi que no
+      # puede escuchar por su cuenta.
+      - key: BROADCAST_CONNECTION
+        value: reverb
+      - key: REVERB_APP_ID
+        value: harsimuverse
+      # La KEY es publica: viaja al navegador para suscribirse al canal.
+      - key: REVERB_APP_KEY
+        value: harsimuverse-status
+      # El SECRET no sale del servidor; lo genera Render y queda fijo.
+      - key: REVERB_APP_SECRET
+        generateValue: true
+      # Como llega el backend a Reverb: mismo contenedor.
+      - key: REVERB_HOST
+        value: 127.0.0.1
+      - key: REVERB_PORT
+        value: "8080"
+      - key: REVERB_SCHEME
+        value: http
+      # Donde escucha Reverb.
+      - key: REVERB_SERVER_HOST
+        value: 0.0.0.0
+      - key: REVERB_SERVER_PORT
+        value: "8080"
+
       # IMPORTANTE: reemplazar por el dominio real de Vercel una vez desplegado.
       # Sin esto el navegador bloquea las llamadas del front por CORS.
       - key: CORS_ALLOWED_ORIGINS
         sync: false
       - key: FRONTEND_URL
+        sync: false
+      # Origenes que pueden abrir el socket. Mismo dominio que CORS.
+      - key: REVERB_ALLOWED_ORIGINS
         sync: false
