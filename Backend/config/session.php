@@ -18,7 +18,11 @@ return [
     |
     */
 
-    'driver' => env('SESSION_DRIVER', 'database'),
+    /*
+      Default file: esta API no usa sesiones (es sin estado, sin cookies), asi
+      que exigir una tabla en base para algo que nadie lee no tiene sentido.
+    */
+    'driver' => env('SESSION_DRIVER', 'file'),
 
     /*
     |--------------------------------------------------------------------------

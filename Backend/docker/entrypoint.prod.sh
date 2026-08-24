@@ -75,35 +75,22 @@ log "nginx escuchara en el puerto ${PORT}; Reverb, en el ${REVERB_SERVER_PORT} i
 ###############################################################################
 # Aviso temprano de configuracion incompleta.
 #
-# Si el servicio se crea a mano en el panel en vez de con el blueprint, es facil
-# que falten variables. Y los defaults de Laravel las tapan en vez de fallar:
-# DB_CONNECTION cae a 'sqlite' y CACHE_STORE a 'database', asi que la app intenta
-# cachear en un SQLite de solo lectura y todo revienta con un 500 opaco:
-#
-#   SQLSTATE[HY000]: General error: 8 attempt to write a readonly database
-#
-# El log tardaba en delatar la causa. Estas lineas la ponen en la primera
-# pantalla de arranque, que es donde se mira cuando un deploy no responde.
+# Los defaults de config/ ya apuntan a produccion (pgsql, cache en fichero), asi
+# que lo unico que no se puede adivinar es DONDE esta la base. Sin esa dato la
+# app arranca y falla despues al primer acceso, con un error que no dice que
+# falto configurarla.
 ###############################################################################
-if [ "${APP_ENV:-production}" = "production" ]; then
-    if [ "${DB_CONNECTION:-sqlite}" = "sqlite" ] && [ -z "${DATABASE_URL:-}" ]; then
-        log "======================================================================"
-        log "AVISO: DB_CONNECTION no esta configurada y no hay DATABASE_URL."
-        log "AVISO: La aplicacion usara SQLite sobre un disco efimero: los puntajes"
-        log "AVISO: se borran en cada deploy y la base es de solo lectura."
-        log "AVISO: Define DB_CONNECTION=pgsql y DATABASE_URL en el panel."
-        log "======================================================================"
-    fi
-
-    if [ -z "${CACHE_STORE:-}" ]; then
-        log "AVISO: CACHE_STORE no esta definida; Laravel usara el driver 'database'."
-        log "AVISO: Sin base escribible eso rompe cualquier escritura de cache."
-        log "AVISO: Define CACHE_STORE=file."
-    fi
+if [ "${APP_ENV:-production}" = "production" ] \
+   && [ -z "${DATABASE_URL:-}" ] && [ -z "${DB_URL:-}" ] && [ -z "${DB_HOST:-}" ]; then
+    log "======================================================================"
+    log "AVISO: no hay DATABASE_URL (ni DB_HOST) definidas."
+    log "AVISO: La aplicacion no sabe donde esta la base y fallara al usarla."
+    log "AVISO: Define DATABASE_URL con la cadena de conexion de tu Postgres."
+    log "======================================================================"
 fi
 
 # SQLite solo tiene sentido como fallback: en Render el disco es efimero.
-if [ "${DB_CONNECTION:-sqlite}" = "sqlite" ]; then
+if [ -z "${DATABASE_URL:-}" ] && [ -z "${DB_URL:-}" ] && [ "${DB_CONNECTION:-pgsql}" = "sqlite" ]; then
     DB_FILE="${DB_DATABASE:-/var/www/html/database/database.sqlite}"
     log "AVISO: usando SQLite en $DB_FILE. En Render el disco es efimero y los"
     log "AVISO: puntajes se borran en cada deploy. Usa Postgres via DATABASE_URL."

@@ -16,7 +16,16 @@ return [
     |
     */
 
-    'default' => env('DB_CONNECTION', 'sqlite'),
+    /*
+      Default pgsql y no el 'sqlite' de fabrica.
+
+      Con sqlite, un despliegue al que se le olvide DB_CONNECTION arranca
+      "bien" y falla despues: escribe en un disco efimero de solo lectura y
+      responde 500 sin decir por que. Ese es un fallo peor que no arrancar.
+      El unico entorno que quiere sqlite es el de tests, y ese lo fija
+      explicitamente en tests/bootstrap.php.
+    */
+    'default' => env('DB_CONNECTION', 'pgsql'),
 
     /*
     |--------------------------------------------------------------------------

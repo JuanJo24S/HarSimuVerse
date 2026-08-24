@@ -13,7 +13,12 @@ return [
     |
     */
 
-    'default' => env('QUEUE_CONNECTION', 'database'),
+    /*
+      Default sync: no hay trabajos en cola en este proyecto ni un worker que
+      los procese, asi que encolar en base solo crearia trabajos que nadie
+      atiende.
+    */
+    'default' => env('QUEUE_CONNECTION', 'sync'),
 
     /*
     |--------------------------------------------------------------------------
