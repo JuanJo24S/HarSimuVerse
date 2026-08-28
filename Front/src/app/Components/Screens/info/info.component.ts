@@ -21,8 +21,7 @@ interface Highlight {
  * jugar: la unica puerta esta en un enlace discreto de la pantalla de registro.
  *
  * El objetivo es que en un par de minutos se entienda que hace la aplicacion,
- * como esta construida y quien la hizo, sin tener que jugar los seis niveles ni
- * abrir el repositorio.
+ * como esta construida y quien la hizo, sin tener que jugar los seis niveles.
  */
 @Component({
   selector: 'app-info',
@@ -33,10 +32,14 @@ interface Highlight {
 export class InfoComponent {
   private readonly router = inject(Router);
 
+  /*
+    No se enlaza ningun repositorio: el codigo del proyecto es privado. Las vias
+    que quedan son de contacto, y el perfil de GitHub va como perfil profesional,
+    no como acceso al codigo.
+  */
   readonly linkedinUrl =
     'https://www.linkedin.com/in/juan-jose-valbuena-camacho-848549278';
   readonly githubUrl = 'https://github.com/JuanJo24S';
-  readonly repoUrl = 'https://github.com/JuanJo24S/HarSimuVerse';
   readonly email = 'Juanjosecodes24@gmail.com';
 
   readonly stack = [
