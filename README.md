@@ -228,45 +228,6 @@ Todas se cargan con `loadComponent`, así que el bundle inicial no arrastra los
 seis minijuegos —con sus preguntas, listas de piezas y estilos— solo para
 mostrar el formulario del nombre.
 
-## Cómo ejecutarlo
-
-Con Docker:
-
-```bash
-git clone git@github.com:JuanJo24S/HarSimuVerse.git
-cd HarSimuVerse
-docker compose up -d --build
-```
-
-Levanta un solo servicio, el frontend, en `localhost:4300`, con recarga en
-caliente sobre el código del host.
-
-Sin Docker:
-
-```bash
-cd Front
-npm ci
-npm start          # localhost:4200
-```
-
-Para levantar además el backend archivado:
-
-```bash
-docker compose --profile backend up -d
-```
-
-### Tests
-
-```bash
-cd Front
-npx ng test --watch=false --browsers=ChromeHeadless    # 19 tests
-```
-
-Cubren el almacén de puntajes: que persista entre cargas, el orden del ranking
-con su desempate, la poda al top 5, el aislamiento entre dificultades, la
-posición devuelta, la validación del puntaje y qué pasa cuando el almacén está
-corrupto o trae entradas con forma inesperada.
-
 ## Estructura
 
 ```
