@@ -15,7 +15,12 @@ return [
     |
     */
 
-    'default' => env('CACHE_STORE', 'database'),
+    /*
+      Default file y no el 'database' de fabrica: la cache no deberia depender
+      de que la base este en pie, y menos la que usa el endpoint de estado, que
+      es justo lo que se consulta cuando la base falla.
+    */
+    'default' => env('CACHE_STORE', 'file'),
 
     /*
     |--------------------------------------------------------------------------

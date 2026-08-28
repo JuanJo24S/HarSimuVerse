@@ -1,15 +1,10 @@
 <div class="on-dark flex min-h-screen flex-col items-center gap-6
             bg-[url('/assets/img/backgrounds/resultados.jpg')] bg-cover bg-center px-4 py-8">
 
-  <div class="flex w-full max-w-[75rem] flex-wrap items-center justify-between gap-4">
-    <h1 class="m-0 text-[clamp(2rem,6vw,3.25rem)] text-amber-400
-               [text-shadow:0_3px_12px_rgb(2_6_23/0.6)]">
-      🏆 Resultados
-    </h1>
-    <!-- Variante compacta: esta es la pantalla que mas depende de la API, asi
-         que si algo va mal conviene verlo sin tener que deducirlo del error. -->
-    <app-service-status-badge variant="nav" />
-  </div>
+  <h1 class="m-0 text-center text-[clamp(2rem,6vw,3.25rem)] text-amber-400
+             [text-shadow:0_3px_12px_rgb(2_6_23/0.6)]">
+    🏆 Resultados
+  </h1>
 
   <div class="flex w-full max-w-[75rem] flex-wrap items-start gap-6">
 
@@ -32,31 +27,17 @@
         </div>
       </dl>
 
-      <!-- Estado del guardado. Antes no existia: si el POST fallaba, el jugador
-           veia el ranking sin su puntaje y no tenia forma de saberlo. -->
-      <div class="mt-6 min-h-[3.5rem]" role="status" aria-live="polite">
-        @if (saving()) {
-          <p class="m-0 rounded-2xl bg-slate-500/20 px-4 py-3 font-semibold text-slate-300">
-            ⏳ Guardando tu puntaje…
-          </p>
-        } @else if (saveError()) {
-          <div class="rounded-2xl border border-red-400/45 bg-lose/20 px-4 py-3">
-            <p class="m-0 font-semibold text-red-200">⚠️ {{ saveError() }}</p>
-            <button type="button" class="hsv-btn hsv-btn-alert mt-3 text-base" (click)="submitScore()">
-              Reintentar
-            </button>
-          </div>
-        } @else if (saved()) {
-          <p class="m-0 rounded-2xl border border-emerald-400/45 bg-win/20 px-4 py-3
-                    font-semibold text-emerald-200">
+      @if (saved()) {
+        <div class="mt-6 rounded-2xl border border-emerald-400/45 bg-win/20 px-4 py-3">
+          <p class="m-0 font-semibold text-emerald-200">
             @if (position()) {
               ✅ ¡Entraste al top en el puesto {{ position() }}!
             } @else {
               ✅ Puntaje guardado. Esta vez no alcanzó para el top {{ topLimit }}.
             }
           </p>
-        }
-      </div>
+        </div>
+      }
 
       <div class="mt-6 flex flex-wrap gap-3">
         <button type="button" class="hsv-btn hsv-btn-primary flex-1" (click)="playAgain()">
@@ -70,17 +51,6 @@
 
     <!-- ---------- Rankings ---------- -->
     <div class="flex flex-[2_1_30rem] flex-wrap gap-6">
-
-      @if (loading()) {
-        <p class="hsv-panel flex-[1_1_100%] p-8 text-center" role="status">⏳ Cargando el ranking…</p>
-      } @else if (loadError()) {
-        <div class="hsv-panel flex-[1_1_100%] p-8 text-center" role="alert">
-          <p class="m-0 text-red-200">⚠️ {{ loadError() }}</p>
-          <button type="button" class="hsv-btn hsv-btn-alert mt-4 text-base" (click)="loadRanking()">
-            Reintentar
-          </button>
-        </div>
-      } @else {
 
         @for (board of boards; track board.key) {
           <section class="hsv-panel flex-[1_1_15rem] p-6" [attr.aria-labelledby]="board.key + '-heading'">
@@ -124,8 +94,7 @@
                 }
               </tbody>
             </table>
-          </section>
-        }
+        </section>
       }
     </div>
   </div>

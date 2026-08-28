@@ -24,13 +24,6 @@
       </p>
     </div>
 
-    <!--
-      Estado del servicio, antes del formulario. Es la primera pantalla publica:
-      si el backend esta dormido, aqui es donde el usuario tiene que enterarse,
-      en vez de descubrirlo cuando su partida no se guarde.
-    -->
-    <app-service-status-badge variant="page" />
-
     <form #form="ngForm" (ngSubmit)="onSubmit()" class="flex flex-col gap-8" novalidate>
       <div class="flex flex-col gap-2.5">
         <label for="nickname" class="text-[0.9rem] font-extrabold tracking-wide text-brand-soft">
@@ -83,15 +76,10 @@
         pasar, porque para cuando termine el primer nivel ya estara arriba.
       -->
       <button type="submit" class="hsv-btn hsv-btn-primary w-full text-xl"
-              [disabled]="form.invalid || submitting() || blocked()">
+              [disabled]="form.invalid || submitting()">
         Continuar <span aria-hidden="true">→</span>
       </button>
 
-      @if (blocked()) {
-        <p class="m-0 text-center text-sm font-semibold text-amber-200">
-          Espera a que el servicio esté disponible para empezar.
-        </p>
-      }
     </form>
   </div>
 </div>

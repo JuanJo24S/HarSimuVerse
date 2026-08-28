@@ -1,6 +1,6 @@
 import { Injectable, computed, signal } from '@angular/core';
 
-/** Dificultades soportadas. Coinciden con las rutas y con el backend. */
+/** Dificultades soportadas. Coinciden con las rutas del juego. */
 export type Difficulty = 'kids' | 'junior';
 
 /** Vidas con las que empieza cada partida. */
@@ -29,7 +29,7 @@ export class GameStatusService {
   readonly difficult = signal<string>(readString(STORAGE_KEYS.difficult));
 
   /**
-   * Marca si el puntaje de esta partida ya se envio al backend.
+   * Marca si el puntaje de esta partida ya se registro.
    * Evita duplicados si el jugador refresca la pantalla de resultados o vuelve
    * a ella con el boton "atras" del navegador.
    */
@@ -39,10 +39,10 @@ export class GameStatusService {
    * Puesto conseguido en el ranking, o null si el puntaje no entro al top.
    *
    * Se persiste junto a `submitted` porque los dos se leen a la vez al pintar
-   * los resultados. Sin esto, al refrescar la pantalla de resultados el
-   * componente se saltaba el POST (correcto: ya estaba enviado) pero se quedaba
-   * sin la posicion, y el mensaje caia al ramal "esta vez no alcanzo para el
-   * top 5" aunque el jugador fuera el numero 1.
+   * los resultados. Sin esto, al refrescar la pantalla el componente se salta
+   * el registro (correcto: ya estaba guardado) pero se queda sin la posicion, y
+   * el mensaje cae al ramal "esta vez no alcanzo para el top" aunque el
+   * jugador fuera el numero 1.
    */
   readonly position = signal<number | null>(readNullableNumber(STORAGE_KEYS.position));
 
@@ -52,9 +52,9 @@ export class GameStatusService {
   readonly isGameOver = computed(() => this.lives() <= 0);
 
   /**
-   * Hay una partida valida en curso. Lo usa el guard de rutas: antes se podia
-   * entrar directo a /kids/level-3 por URL, jugar sin nickname y enviar al
-   * backend un nickname vacio que el servidor rechazaba con un 422 silencioso.
+   * Hay una partida valida en curso. Lo usa el guard de rutas: sin esto se
+   * puede entrar directo a /kids/level-3 por URL y jugar sin nickname, y el
+   * puntaje acaba registrandose sin nombre.
    */
   readonly hasActiveRun = computed(
     () => this.nickname().trim().length >= 2 && this.difficult().length > 0
@@ -120,8 +120,8 @@ export class GameStatusService {
   // ---------- Identidad ----------
 
   setNickname(name: string): void {
-    // Colapsa espacios: el backend hace lo mismo, asi que el ranking coincide
-    // con lo que se muestra en pantalla.
+    // Colapsa espacios para que el ranking muestre el mismo texto que se
+    // escribio, sin dobles espacios accidentales.
     const clean = name.trim().replace(/\s+/g, ' ').slice(0, 40);
     this.nickname.set(clean);
     write(STORAGE_KEYS.nickname, clean);

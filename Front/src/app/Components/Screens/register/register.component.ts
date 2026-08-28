@@ -1,15 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
 import { AudioService } from '../../../Services/audio.service';
 import { GameStatusService } from '../../../Services/game-status.service';
-import { ServiceStatusService } from '../../../Services/service-status.service';
-import { ServiceStatusBadgeComponent } from '../../Shared/service-status-badge/service-status-badge.component';
 
 @Component({
   selector: 'app-register',
-  imports: [FormsModule, ServiceStatusBadgeComponent],
+  imports: [FormsModule],
   templateUrl: './register.component.html',
   styleUrl: './register.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,19 +21,6 @@ export class RegisterComponent {
   nickname = this.gameStatus.nickname();
 
   readonly submitting = signal(false);
-
-  private readonly serviceStatus = inject(ServiceStatusService);
-
-  /**
-   * Impide empezar cuando el servicio no puede cumplir.
-   *
-   * `waking` no bloquea: el arranque en frio ronda el minuto y para cuando el
-   * nino termine el primer nivel el servicio ya estara arriba. Bloquear ahi
-   * seria tan molesto como inutil.
-   */
-  readonly blocked = computed(
-    () => this.serviceStatus.service() === 'offline' || this.serviceStatus.database() === 'disconnected'
-  );
 
   /**
    * Antes recibia el objeto del formulario y hacia console.log del nickname

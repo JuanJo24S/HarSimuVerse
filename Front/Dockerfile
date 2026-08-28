@@ -64,11 +64,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# API_URL se inyecta en src/environments/environment.ts via scripts/set-env.mjs
-# (lo dispara el hook `prebuild` de package.json).
-ARG API_URL=""
-ENV API_URL=$API_URL \
-    NG_CLI_ANALYTICS=false
+ENV NG_CLI_ANALYTICS=false
 
 RUN npm run build
 
