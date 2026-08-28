@@ -22,6 +22,16 @@ export const routes: Routes = [
       import('./Components/Screens/register/register.component').then(m => m.RegisterComponent),
   },
   {
+    /*
+      Presentacion publica del proyecto. Va fuera del juego y sin guard: la ve
+      quien llega desde un perfil o un CV, no quien viene a jugar.
+    */
+    path: 'info',
+    title: 'HarSimuVerse — Sobre el proyecto',
+    loadComponent: () =>
+      import('./Components/Screens/info/info.component').then(m => m.InfoComponent),
+  },
+  {
     path: 'select-level',
     title: 'HarSimuVerse — Elige tu edad',
     loadComponent: () =>
