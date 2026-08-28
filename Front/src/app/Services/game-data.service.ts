@@ -17,10 +17,8 @@ const MAX_SCORE = 100_000;
  * El ranking es POR NAVEGADOR: cada tablet ve solo sus propios puntajes, y se
  * pierden si se limpian los datos del sitio o se juega en modo privado.
  *
- * La API es sincrona a proposito. Antes esto hablaba por HTTP y devolvia
- * Observables, con sus estados de carga, de error y de reintento. Leer una
- * clave de localStorage es inmediato y no puede fallar por red, asi que todo
- * aquello era ceremonia para simular una espera que ya no existe.
+ * La API es sincrona: leer una clave de localStorage es inmediato, asi que no
+ * hay nada que esperar ni que pueda fallar a medias.
  */
 @Injectable({ providedIn: 'root' })
 export class GameDataService {

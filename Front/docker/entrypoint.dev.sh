@@ -17,7 +17,6 @@ if [ ! -d node_modules ] || [ ! -d node_modules/@angular ]; then
     fi
 fi
 
-log "API apuntando a: ${API_URL:-http://localhost:8000/api (default de desarrollo)}"
 log "Frontend listo en http://localhost:${FRONTEND_PORT:-4200}"
 
 exec "$@"

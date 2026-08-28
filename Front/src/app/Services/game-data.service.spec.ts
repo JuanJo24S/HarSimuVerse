@@ -82,9 +82,9 @@ describe('GameDataService (localStorage)', () => {
     });
   });
 
-  describe('validacion (la que antes hacia el backend)', () => {
+  describe('validacion del puntaje', () => {
     it('rechaza una dificultad desconocida', () => {
-      // Antes esto lo validaba el backend con un 422.
+      // Un estado corrupto no debe poder meter basura en el ranking.
       expect(service.saveScore({ difficult: 'imposible', nickname: 'ana', score: 10 })).toBeNull();
       expect(service.getScores()).toEqual({ kids: [], junior: [] });
     });
